@@ -1,0 +1,30 @@
+import * as collide from "../../src/engine/misc/collide.ts";
+import type { Port } from "../ports.ts";
+
+export const ports: Record<string, Port> = {
+  "0:d424": { fn: collide.blocked, returns: "ax" },
+  "0:d470": { fn: collide.hitsOccupied, returns: "ax" },
+  "0:d551": { fn: collide.hitsRoomEdge, returns: "ax" },
+  "0:d5fa": { fn: collide.noop },
+  "0:d5fb": { fn: collide.placeInCell },
+  "0:d65b": { fn: collide.markFootprint },
+  "0:d724": { fn: collide.setCell },
+  "0:d78a": { fn: collide.cellOccupied, returns: "ax" },
+  "0:d7e0": { fn: collide.bumpObjects, returns: "ax" },
+  "0:d87f": { fn: collide.collide, returns: "ax" },
+  "0:d8cf": { fn: collide.collideMap, returns: "ax" },
+  "0:d968": { fn: collide.collideEdge, returns: "ax" },
+  "0:dad0": { fn: collide.collidePlayer, returns: "ax" },
+  "0:db1c": { fn: collide.occupiedCells, returns: "ax" },
+  "0:dbda": { fn: collide.markCells },
+  "0:dc27": { fn: collide.pushBlocks },
+  "0:dc94": { fn: collide.cellListsMeet, returns: "ax" },
+  "0:dcfc": { fn: collide.anyOnOccupied, returns: "ax" },
+  "0:dd61": { fn: collide.clearCells },
+  "0:dd7c": { fn: collide.hitPair, returns: "ax" },
+  "0:ddee": { fn: collide.setDirection },
+  "0:de14": { fn: collide.bumpPair },
+  "0:de4c": { fn: collide.cellToScreen },
+  "0:affa": { fn: collide.listItems, returns: "ax" },
+  "0:b0f3": { fn: collide.useItem },
+};

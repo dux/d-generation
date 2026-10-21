@@ -6,6 +6,18 @@ export class Memory {
   readonly bytes = new Uint8Array(0x100000);
   // VGA DAC: 256 colors x 6-bit RGB, set through ports 3c8/3c9 (not addressable memory).
   readonly dac = new Uint8Array(768);
+  // Stack pointer, an offset in DS (the game runs with SS = DS). Ports that pass the address of a local
+  // variable to a callee allocate it on this stack: `const local = m.push(6); ...; m.pop(6);`.
+  sp = 0xd9b2;
+
+  push(size: number): number {
+    this.sp = (this.sp - ((size + 1) & ~1)) & 0xffff;
+    return this.sp;
+  }
+
+  pop(size: number): void {
+    this.sp = (this.sp + ((size + 1) & ~1)) & 0xffff;
+  }
 
   // ds: data segment paragraph (DS:0 = ds * 16).
   constructor(readonly ds: number) {}

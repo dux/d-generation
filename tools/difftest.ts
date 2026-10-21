@@ -3,24 +3,16 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { Memory } from "../src/engine/memory.ts";
-import { PORTS } from "./ports.ts";
-
-interface Case {
-  memory: string;
-  ds: number;
-  ss: number;
-  sp: number;
-  args: number[];
-  dac: string;
-  dac_after: string;
-  ax: number;
-  dx: number;
-  changes: [number, number][];
-}
+import { type Case, PORTS } from "./ports.ts";
+import { machineState } from "./ports/dos.ts";
 
 const ROOT = join(import.meta.dir, "..");
 const DIR = join(ROOT, "out", "difftest");
 const STACK_SLACK = 0x600;
+
+// sprintf leaves its output cursor here; when the buffer is a stack local its value depends on how deep the
+// original call stack was, which ports do not reproduce. It is dead once sprintf returns.
+const SPRINTF_CURSOR = 0x2d4a;
 
 const wanted = process.argv.slice(2);
 let failures = 0;
@@ -37,19 +29,32 @@ for (const file of readdirSync(DIR).filter((f) => f.endsWith(".json"))) {
   let first = "";
   for (const c of cases) {
     const m = new Memory(c.ds);
+    m.sp = c.sp;
     m.bytes.set(Bun.gunzipSync(new Uint8Array(await Bun.file(join(DIR, "mem", `${c.memory}.bin.gz`)).arrayBuffer())));
     m.dac.set(Uint8Array.fromHex(c.dac));
+    // Cases recorded with DOS machine state get it set up and compared: any function may reach file or BIOS
+    // I/O deep down. Older cases without it are compared on memory only.
+    const prepare = port.prepare ?? (c.machine ? machineState.prepare : undefined);
+    const check = port.check ?? (c.machine ? machineState.check : undefined);
+    prepare?.(m, c);
     const start = m.bytes.slice();
-    const ret = port.fn(m, ...c.args);
+    let ret: number | void = undefined;
     const problems: string[] = [];
+    try {
+      ret = port.fn(m, ...c.args);
+    } catch (err) {
+      problems.push(`threw: ${err instanceof Error ? err.message : String(err)}`);
+    }
     if (port.returns === "ax" && ((ret ?? 0) & 0xffff) !== c.ax) problems.push(`ax ${ret} want ${c.ax}`);
     if (port.returns === "dx:ax" && (ret ?? 0) >>> 0 !== ((c.dx << 16) | c.ax) >>> 0) problems.push(`dx:ax ${ret} want ${(c.dx << 16) | c.ax}`);
     if (m.dac.toHex() !== c.dac_after) problems.push("DAC differs");
+    problems.push(...(check?.(m, c) ?? []));
     const expected = new Map(c.changes);
     const stackTop = c.ss * 16 + c.sp;
     const ds = c.ds * 16;
     for (let i = 0; i < m.bytes.length; i++) {
       if (i >= stackTop - STACK_SLACK && i < stackTop + 0x40) continue;
+      if (i - ds === SPRINTF_CURSOR || i - ds === SPRINTF_CURSOR + 1) continue;
       const want = expected.get(i) ?? start[i];
       if (m.bytes[i] !== want) {
         const where = i >= ds && i < ds + 0x10000 ? `DS:${(i - ds).toString(16)}` : `${i.toString(16)}`;

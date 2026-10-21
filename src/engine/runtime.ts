@@ -23,9 +23,6 @@ const HEAP_BASE = 0x2bde;
 const BRK_GUARDED = 0x2be0;
 const DOS_HEAP_MODE = 0x2c1a;
 const STACK_GUARD = 0x2c16;
-// brk compares the new break against SP - stack guard. SP inside brk when malloc grows the heap from the
-// game's main loop (observed: 0xff76); the port has no real stack, so it uses this value.
-const BRK_SP = 0xff76;
 
 // sprintf output pointer (0:ef43 stores one char there and advances it).
 const SPRINTF_OUT = 0x2d4a;
@@ -408,7 +405,8 @@ export function brk(m: Memory, addr: number): number {
   const top = (addr + 1) & 0xfffe;
   if (top >= m.u16(HEAP_BASE)) {
     if (m.u16(DOS_HEAP_MODE)) throw new Error("brk: DOS memory resize path is not ported");
-    if (top < ((BRK_SP - m.u16(STACK_GUARD)) & 0xffff)) {
+    // The original compares against its own SP, after the saved BP.
+    if (top < ((m.sp - 2 - m.u16(STACK_GUARD)) & 0xffff)) {
       m.set16(BRK, top);
       m.set16(BRK_GUARDED, top + m.u16(STACK_GUARD));
       return 0;

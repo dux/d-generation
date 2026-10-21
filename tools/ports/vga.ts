@@ -9,6 +9,8 @@ import {
   maskBuffer,
   maskWithFrame,
   putPixel,
+  restoreBackground,
+  saveBackground,
   setCrtc04,
   setCrtc10,
   setPalette,
@@ -29,4 +31,6 @@ export const ports: Record<string, Port> = {
   "23ac:01ac": { fn: (m, x, y, w, h, s, d) => copyRect(m, x, y, w, h, s, d) },
   "23ac:022d": { fn: (m, x, y, o, s, fx, fy) => maskWithFrame(m, x, y, o, s, fx, fy) },
   "23ac:0340": { fn: (m, x, y, o, s, sh, fl, lo) => drawSprite(m, x, y, o, s, sh, fl, lo) },
+  "23ac:0502": { fn: (m, x, y, w, h, o, s) => saveBackground(m, x, y, w, h, o, s), returns: "ax" },
+  "23ac:057f": { fn: (m, x, y, w, h, o, s) => restoreBackground(m, x, y, w, h, o, s), returns: "ax" },
 };

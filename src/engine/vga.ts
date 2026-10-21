@@ -3,6 +3,7 @@ import { register } from "./dispatch.ts";
 
 // VGA driver, code segment 23ac. Drawing goes to the back buffer, not to A000.
 
+export const BACKGROUND_BUFFER = 0x27ce; // segment of the clean background copy
 export const DRAW_BUFFER = 0x27cc; // segment of the 320x200 back buffer everything is drawn into
 export const FRONT_BUFFER = 0x27ca; // segment of the second full-screen buffer cleared by 23ac:0060/0084
 export const CLIP_BOTTOM = 0x3a7e; // last visible row
@@ -162,6 +163,60 @@ export function copyRect(m: Memory, x: number, y: number, width: number, rows: n
   const patch = (COPY_ROWS + ((bx << 3) & 0xffff)) & 0xffff;
   put(m, cs, patch, 0x8b);
   put(m, cs, patch + 1, 0xca);
+}
+
+// Clip for 23ac:0502/057f: rows 0..199, start column < [30be]. Returns [offset, width, rows] or null.
+function clipBackgroundRect(m: Memory, x: number, y: number, width: number, height: number): number[] | null {
+  let dy = (y << 16) >> 16;
+  let cx = width & 0xff;
+  let bx = height & 0xff;
+  if (dy > 0xc7) return null;
+  if (bx > 0xc7 - dy) bx = 0xc7 - dy;
+  if (dy < 0) {
+    bx = ((bx + dy) << 16) >> 16;
+    if (bx < 0) return null;
+    dy = 0;
+  }
+  let ax = (x << 16) >> 16;
+  if (ax >= m.s16(CLIP_RIGHT)) return null;
+  if (ax < 0) {
+    cx = (cx + ax) & 0xffff;
+    if (cx & 0x8000) return null;
+    ax = 0;
+  }
+  return [(rowOffset(dy) + ax) & 0xffff, cx, bx & 0xffff];
+}
+
+// 23ac:0502 saveBackground(x, y, width, height, off, seg): copy a rect of the clean background (DS:27ce) to a
+// packed far buffer. Returns 0, or -1 when clipped away.
+export function saveBackground(m: Memory, x: number, y: number, w: number, h: number, off: number, seg: number): number {
+  const clip = clipBackgroundRect(m, x, y, w, h);
+  if (!clip) return 0xffff;
+  let [si, cx, rows] = clip;
+  const src = m.u16(BACKGROUND_BUFFER);
+  let di = off & 0xffff;
+  do {
+    for (let i = 0; i < cx; i++) put(m, seg, di++, get(m, src, si++));
+    si = (si + 0x140 - cx) & 0xffff;
+    rows = (rows - 1) & 0xffff;
+  } while (rows);
+  return 0;
+}
+
+// 23ac:057f restoreBackground(x, y, width, height, off, seg): copy a packed far buffer back into the clean
+// background (DS:27ce). Returns 0, or -1 when clipped away.
+export function restoreBackground(m: Memory, x: number, y: number, w: number, h: number, off: number, seg: number): number {
+  const clip = clipBackgroundRect(m, x, y, w, h);
+  if (!clip) return 0xffff;
+  let [di, cx, rows] = clip;
+  const dst = m.u16(BACKGROUND_BUFFER);
+  let si = off & 0xffff;
+  do {
+    for (let i = 0; i < cx; i++) put(m, dst, di++, get(m, seg, si++));
+    di = (di + 0x140 - cx) & 0xffff;
+    rows = (rows - 1) & 0xffff;
+  } while (rows);
+  return 0;
 }
 
 // 23ac:022d maskWithFrame(maskX, maskY, frameOff, frameSeg, frameX, frameY): AND the overlapping part of the
@@ -327,3 +382,5 @@ register("23ac:012f", dropColumn);
 register("23ac:01ac", copyRect);
 register("23ac:022d", maskWithFrame);
 register("23ac:0340", drawSprite);
+register("23ac:0502", saveBackground);
+register("23ac:057f", restoreBackground);

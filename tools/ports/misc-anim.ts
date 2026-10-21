@@ -1,0 +1,31 @@
+import * as anim from "../../src/engine/misc/anim.ts";
+import type { Port } from "../ports.ts";
+
+export const ports: Record<string, Port> = {
+  "12cc:07b7": { fn: anim.nextSequenceByte, returns: "ax" },
+  "12cc:000b": { fn: anim.anim000b },
+  "12cc:031b": { fn: anim.set031b },
+  "12cc:017c": { fn: anim.anim017c },
+  "12cc:0355": { fn: anim.anim0355 },
+  "12cc:0522": { fn: anim.anim0522 },
+  "12cc:0600": { fn: anim.anim0600 },
+  "12cc:0768": { fn: anim.stepLevel, returns: "ax" },
+  "12cc:065e": { fn: anim.anim065e },
+  "12cc:0976": { fn: anim.bumpClass5 },
+  "12cc:09b0": { fn: anim.set09b0 },
+  "12cc:07f5": { fn: anim.anim07f5 },
+  "12cc:09f0": { fn: anim.anim09f0 },
+  "12cc:0aa0": { fn: anim.anim0aa0, returns: "ax" },
+  "12cc:0cd2": { fn: anim.anim0cd2 },
+  "12cc:0e05": { fn: anim.anim0e05 },
+  "12cc:0ed7": { fn: anim.anim0ed7, returns: "ax" },
+  "12cc:14d9": { fn: anim.anim14d9 },
+  "12cc:16a4": { fn: anim.anim16a4 },
+  "12cc:174e": { fn: anim.anim174e },
+  "12cc:17b4": { fn: anim.toLower },
+  "12cc:17e4": { fn: anim.anim17e4 },
+  "12cc:18cd": { fn: anim.anim18cd },
+  "12cc:191d": { fn: anim.anim191d },
+  "12cc:19cf": { fn: anim.anim19cf },
+  "12cc:1a8a": { fn: anim.anim1a8a },
+};

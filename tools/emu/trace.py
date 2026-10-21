@@ -19,13 +19,20 @@ import sys
 from unicorn import UC_HOOK_CODE, UcError
 from unicorn.x86_const import UC_X86_REG_AX, UC_X86_REG_CS, UC_X86_REG_DX, UC_X86_REG_SP, UC_X86_REG_SS
 
-from dosemu import LOAD
+from dosemu import GAME, LOAD
 from room_truth import SCENES
 from snapshot import Session
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 OUT = os.path.join(ROOT, 'out', 'difftest')
 STACK_SLACK = 0x600
+
+
+def machine(emu):
+    """DOS/BIOS/hardware state that lives in dosemu.py rather than in memory (for I/O ports in TS)."""
+    files = {str(h): [os.path.relpath(f[2], GAME).replace('/', '\\') if f[2] else None, f[1], len(f[0])] for h, f in emu.files.items()}
+    return {'files': files, 'next_handle': emu.next_handle, 'alloc_next': emu.alloc_next, 'ticks': emu.ticks,
+            'retrace': emu.retrace, 'keys': list(emu.keys), 'dac_w': emu.dac_w}
 FRAMES_PER_ROOM = 6
 
 
@@ -60,8 +67,9 @@ def main():
         args = list(struct.unpack_from(f'<{nargs}H', stack, frame)) if kind != 'int' else []
         before = bytes(mu.mem_read(0, 0x100000))
         dac_before = bytes(session[0].emu.dac)
+        machine_before = machine(session[0].emu)
         ret_lin = ret_cs * 16 + ret_ip
-        pending.update(before=before, dac=dac_before, args=args, sp=(sp + frame) & 0xffff, ss=ss, ret_lin=ret_lin)
+        pending.update(before=before, dac=dac_before, machine=machine_before, args=args, sp=(sp + frame) & 0xffff, ss=ss, ret_lin=ret_lin)
 
         def on_return(mu2, addr2, size2, _2):
             if mu2.reg_read(UC_X86_REG_SP) != pending['sp']:
@@ -74,7 +82,7 @@ def main():
             with gzip.open(os.path.join(OUT, 'mem', f'{name}-{k}.bin.gz'), 'wb', compresslevel=6) as f:
                 f.write(b)
             cases.append({'memory': f'{name}-{k}', 'ds': session[0].emu.ds(), 'ss': pending['ss'], 'sp': pending['sp'] - frame,
-                          'args': pending['args'], 'dac': pending['dac'].hex(), 'dac_after': bytes(session[0].emu.dac).hex(), 'ax': mu2.reg_read(UC_X86_REG_AX), 'dx': mu2.reg_read(UC_X86_REG_DX), 'changes': changes})
+                          'args': pending['args'], 'dac': pending['dac'].hex(), 'dac_after': bytes(session[0].emu.dac).hex(), 'machine': pending['machine'], 'machine_after': machine(session[0].emu), 'ax': mu2.reg_read(UC_X86_REG_AX), 'dx': mu2.reg_read(UC_X86_REG_DX), 'changes': changes})
             mu2.hook_del(pending['hook'])
             session[0].emu.block_irq = False
             pending.clear()
