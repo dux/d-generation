@@ -1,6 +1,7 @@
 import type { Memory } from "../memory.ts";
 import { hline, setCrtc04, setCrtc10, setPalette } from "../vga.ts";
 import { blit, FRAME, SHAPE_SEG } from "./room.ts";
+import { register } from "../dispatch.ts";
 
 const DRAW_BUFFER = 0x2e60; // far pointer to the buffer being drawn into
 const SAVED_BUFFER = 0x6e7a; // saved DS:2e60 far pointer and DS:2efa
@@ -297,3 +298,18 @@ export function stepCrtcScripts(m: Memory): void {
     m.set16(CRTC04_SCRIPT, m.u16(CRTC04_SCRIPT) + 2);
   }
 }
+
+register("fff:2825", drawToPanel);
+register("fff:27f5", drawToFront);
+register("fff:2855", restoreDrawTarget);
+register("fff:21e2", hbar);
+register("fff:20e8", fillRows);
+register("fff:2012", drawBox);
+register("fff:2113", drawTallBox);
+register("fff:2c6c", selectBarPalette);
+register("fff:0421", drawText);
+register("fff:0639", wrapText);
+register("fff:0e74", drawTitleBar);
+register("fff:0f9f", crtc10);
+register("fff:1000", crtc04);
+register("fff:0f61", stepCrtcScripts);

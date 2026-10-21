@@ -1,3 +1,4 @@
+import { register } from "../dispatch.ts";
 import type { Memory } from "../memory.ts";
 
 // Class 3, TEL.VGA: teleporter pad.
@@ -10,3 +11,5 @@ export function telInit(m: Memory, record: number, obj: number): void {
   m.set16(obj + 0x84, 0x15e);
   m.set8(obj + 0x18, 1);
 }
+
+register("0:4a69", telInit);

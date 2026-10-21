@@ -1,4 +1,5 @@
 import type { Memory } from "./memory.ts";
+import { register } from "./dispatch.ts";
 
 // VGA driver, code segment 23ac. Drawing goes to the back buffer, not to A000.
 
@@ -312,3 +313,17 @@ export function drawSprite(
   } while (rows);
   put(m, cs, template + unit * visible, 0xac);
 }
+
+register("23ac:000d", setCrtc10);
+register("23ac:0024", setCrtc04);
+register("23ac:003b", setPalette);
+register("23ac:0060", clearBuffers);
+register("23ac:0084", clearFrontBuffer);
+register("23ac:009a", clearDrawBuffer);
+register("23ac:00b0", maskBuffer);
+register("23ac:00b6", putPixel);
+register("23ac:00fb", hline);
+register("23ac:012f", dropColumn);
+register("23ac:01ac", copyRect);
+register("23ac:022d", maskWithFrame);
+register("23ac:0340", drawSprite);

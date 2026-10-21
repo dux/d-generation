@@ -1,12 +1,6 @@
-import type { Memory } from "../../src/engine/memory.ts";
+import "../../src/engine/core/sort.ts";
 import * as rt from "../../src/engine/runtime.ts";
 import type { Port } from "../ports.ts";
-
-// Comparators the game passes to qsort, by near address.
-const COMPARATORS: Record<number, (m: Memory, a: number, b: number) => number> = {
-  // 0:1408 compares two object pointers by the depth byte at obj+0xa.
-  0x1408: (m, a, b) => m.u8(m.u16(a) + 0xa) - m.u8(m.u16(b) + 0xa),
-};
 
 export const ports: Record<string, Port> = {
   "0:e46a": { fn: (m) => rt.timerAlloc(m), returns: "ax" },
@@ -21,13 +15,7 @@ export const ports: Record<string, Port> = {
   "0:e5e0": { fn: (m, v) => rt.timerSetHook(m, v) },
   "0:e5ed": { fn: (m) => rt.timerHookOn(m) },
   "0:e5f4": { fn: (m) => rt.timerHookOff(m) },
-  "0:e947": {
-    fn: (m, base, count, size, cmp) => {
-      const compare = COMPARATORS[cmp];
-      if (!compare) throw new Error(`qsort comparator ${cmp.toString(16)} not ported`);
-      rt.qsort(m, base, count, size, compare);
-    },
-  },
+  "0:e947": { fn: (m, base, count, size, compare) => rt.qsort(m, base, count, size, compare) },
   "0:efb0": { fn: (m, a, b, n) => rt.swapBytes(m, a, b, n) },
   "0:ef18": { fn: (m, buf, fmt, ...args) => rt.sprintf(m, buf, fmt, ...args), returns: "ax" },
   "0:ef88": { fn: (m, d, s, n) => rt.strncpy(m, d, s, n), returns: "ax" },

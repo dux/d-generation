@@ -24,6 +24,10 @@ The game checks display flags (`DS:2e5c` VGA, `DS:2e5e` EGA, `DS:2f08`, `DS:2f0a
 Calling convention: a port takes `(m: Memory, ...args)` with the original stack arguments as words, and returns the value the original leaves in AX (or DX:AX as one 32-bit number).
 Byte arguments arrive as words; mask them like the original does.
 
+Code pointers: the original calls functions through pointers stored in memory (class descriptor slots at `DS:191d`, qsort comparators, for-each callbacks, timer hooks).
+Every port that can be reached that way registers itself with `register("0:4a69", fn)` from `./src/engine/dispatch.ts` at the bottom of its module, and callers use `callNear(m, offset, ...args)` / `call(m, label, ...args)`.
+Register every exported port this way (it costs nothing and callers never have to know which ones are reached through pointers).
+
 ## Workflow for one function
 
 1. Read it: `cd tools/emu && uv run --with capstone python -i rekit.py`, then `print(fn('0:4a69'))`, `callers('0:4a69')`, `refs(0x337e)`.

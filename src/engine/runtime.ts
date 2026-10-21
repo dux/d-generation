@@ -1,6 +1,7 @@
 // Borland C runtime and small helpers called by the game code: timer slots, string/memory functions, qsort,
 // sprintf, the near heap and far pointer helpers. All work on the flat memory image; DOS, BIOS and port I/O
 // routines are not here.
+import { callNear, register } from "./dispatch.ts";
 import type { Memory } from "./memory.ts";
 
 // Timer slots updated by the timer ISR (0:e345): 7 entries of { flags, counter }.
@@ -128,9 +129,9 @@ export function swapBytes(m: Memory, a: number, b: number, count: number): void 
 }
 
 // 0:e947 qsort(base, count, size, compare): Borland's quicksort (middle pivot, explicit stack, smaller side
-// first). The order of equal keys follows this exact algorithm.
-export function qsort(m: Memory, base: number, count: number, size: number, compare: (m: Memory, a: number, b: number) => number): void {
-  const less = (a: number, b: number) => ((compare(m, a, b) << 16) >> 16) < 0;
+// first). The order of equal keys follows this exact algorithm. compare is a near code pointer.
+export function qsort(m: Memory, base: number, count: number, size: number, compare: number): void {
+  const less = (a: number, b: number) => ((callNear(m, compare, a, b) << 16) >> 16) < 0;
   const stack: [number, number][] = [];
   let lo = base;
   let hi = (base + (count - 1) * size) & 0xffff;
@@ -572,3 +573,43 @@ export function joySwapAxes(m: Memory): void {
   m.set8(JOY_X_MASK, m.u8(JOY_Y_MASK));
   m.set8(JOY_Y_MASK, x);
 }
+
+register("0:e46a", timerAlloc);
+register("0:e4af", timerFree);
+register("0:e4c6", timerSet);
+register("0:e4ec", timerEnable);
+register("0:e51b", timerFreeze);
+register("0:e53f", timerThaw);
+register("0:e55a", timerGet);
+register("0:e56f", timerExchange);
+register("0:e5d3", timerSetChain);
+register("0:e5e0", timerSetHook);
+register("0:e5ed", timerHookOn);
+register("0:e5f4", timerHookOff);
+register("0:efb0", swapBytes);
+register("0:e947", qsort);
+register("0:ef18", sprintf);
+register("0:ef88", strncpy);
+register("0:f104", memcpy);
+register("0:f12c", memset);
+register("0:f154", farToLinear);
+register("0:f173", linearToFar);
+register("0:f194", strchr);
+register("0:fa32", strcmp);
+register("0:fa50", strncmp);
+register("0:fa99", strlen);
+register("0:feca", movmem);
+register("0:ff63", brk);
+register("0:ff2f", sbrk);
+register("0:f536", malloc);
+register("0:f634", free);
+register("1485:02c8", reset61a8);
+register("1485:03bb", extractDying);
+register("14c8:004d", farBuffer);
+register("14c8:0059", fpSeg);
+register("14c8:0061", fpOff);
+register("14c8:0069", farMemsetSegFirst);
+register("14c8:0084", farMemcpy);
+register("14c8:0339", farMemset);
+register("14c8:02df", joyRotateAxes);
+register("14c8:032a", joySwapAxes);

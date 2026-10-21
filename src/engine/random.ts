@@ -1,4 +1,5 @@
 import type { Memory } from "./memory.ts";
+import { register } from "./dispatch.ts";
 
 const SEED_A = 0x3922;
 const SEED_B = 0x3923;
@@ -16,3 +17,5 @@ export function random(m: Memory, range: number): number {
   const mixed = (a + b) & 0xff;
   return range ? ((mixed * range) >> 8) & 0xff : mixed;
 }
+
+register("fff:1176", random);

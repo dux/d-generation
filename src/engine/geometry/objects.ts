@@ -1,5 +1,6 @@
 import type { Memory } from "../memory.ts";
 import { blit, FRAME, FRAME_Y, SHAPE_SEG } from "./room.ts";
+import { register } from "../dispatch.ts";
 
 const OBJECT_LIST = 0x33ac;
 const CLASS_DESCRIPTORS = 0x191d;
@@ -213,3 +214,14 @@ export function turnAround(m: Memory, obj: number, pair: number, outDir: number)
   m.set8(outDir, d & 7);
   return reversed;
 }
+
+register("fff:0322", updateBox);
+register("fff:1b1b", assignPath);
+register("fff:27b4", boxesOverlap);
+register("fff:26c9", findCollision);
+register("fff:0834", project);
+register("fff:08c4", placeParts);
+register("fff:00a5", drawPart);
+register("fff:1b54", writePathA);
+register("fff:1c3b", writePathB);
+register("fff:235a", turnAround);

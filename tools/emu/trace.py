@@ -5,9 +5,10 @@ over the run) is captured: full memory before the call, its stack arguments, and
 it returned, plus AX/DX. Nested calls of the same function are skipped. Output: out/difftest/<seg_off>.json plus
 out/difftest/mem/<seg_off>-<k>.bin.gz with the memory before each call.
 
-Usage: uv run --with unicorn tools/emu/trace.py <seg:off> [max cases=40] [args=4] [far]
+Usage: uv run --with unicorn tools/emu/trace.py <seg:off> [max cases=40] [args=4] [far|int]
   args  number of stack words to record as arguments
   far   the function is called with a far call (return address is IP and CS)
+  int   the function is an interrupt handler (returns with iret: IP, CS, FLAGS)
 """
 import gzip
 import json
@@ -32,7 +33,9 @@ def main():
     label = sys.argv[1]
     limit = int(sys.argv[2]) if len(sys.argv) > 2 else 40
     nargs = int(sys.argv[3]) if len(sys.argv) > 3 else 4
-    far = len(sys.argv) > 4 and sys.argv[4] == 'far'
+    kind = sys.argv[4] if len(sys.argv) > 4 else 'near'
+    far = kind in ('far', 'int')
+    frame = {'near': 2, 'far': 4, 'int': 6}[kind]
     seg, off = (int(x, 16) for x in label.split(':'))
     entry = (LOAD + seg) * 16 + off
     name = f'{seg:x}_{off:04x}'
@@ -51,14 +54,14 @@ def main():
         if len(cases) > limit // 2 and seen_calls[0] % 7:
             return
         ss, sp = mu.reg_read(UC_X86_REG_SS), mu.reg_read(UC_X86_REG_SP)
-        stack = bytes(mu.mem_read(ss * 16 + sp, 4 + nargs * 2))
+        stack = bytes(mu.mem_read(ss * 16 + sp, 6 + nargs * 2))
         ret_ip = struct.unpack_from('<H', stack, 0)[0]
         ret_cs = struct.unpack_from('<H', stack, 2)[0] if far else mu.reg_read(UC_X86_REG_CS)
-        args = list(struct.unpack_from(f'<{nargs}H', stack, 4 if far else 2))
+        args = list(struct.unpack_from(f'<{nargs}H', stack, frame)) if kind != 'int' else []
         before = bytes(mu.mem_read(0, 0x100000))
         dac_before = bytes(session[0].emu.dac)
         ret_lin = ret_cs * 16 + ret_ip
-        pending.update(before=before, dac=dac_before, args=args, sp=(sp + (4 if far else 2)) & 0xffff, ss=ss, ret_lin=ret_lin)
+        pending.update(before=before, dac=dac_before, args=args, sp=(sp + frame) & 0xffff, ss=ss, ret_lin=ret_lin)
 
         def on_return(mu2, addr2, size2, _2):
             if mu2.reg_read(UC_X86_REG_SP) != pending['sp']:
@@ -70,7 +73,7 @@ def main():
             k = len(cases)
             with gzip.open(os.path.join(OUT, 'mem', f'{name}-{k}.bin.gz'), 'wb', compresslevel=6) as f:
                 f.write(b)
-            cases.append({'memory': f'{name}-{k}', 'ds': session[0].emu.ds(), 'ss': pending['ss'], 'sp': pending['sp'] - (4 if far else 2),
+            cases.append({'memory': f'{name}-{k}', 'ds': session[0].emu.ds(), 'ss': pending['ss'], 'sp': pending['sp'] - frame,
                           'args': pending['args'], 'dac': pending['dac'].hex(), 'dac_after': bytes(session[0].emu.dac).hex(), 'ax': mu2.reg_read(UC_X86_REG_AX), 'dx': mu2.reg_read(UC_X86_REG_DX), 'changes': changes})
             mu2.hook_del(pending['hook'])
             session[0].emu.block_irq = False
@@ -96,7 +99,7 @@ def main():
             session[0].emu.block_irq = False
             attach(Session())
     with open(os.path.join(OUT, f'{name}.json'), 'w') as f:
-        json.dump({'function': label, 'far': far, 'cases': cases}, f)
+        json.dump({'function': label, 'kind': kind, 'cases': cases}, f)
     print(f'{label}: {len(cases)} cases ({seen_calls[0]} calls seen)')
 
 

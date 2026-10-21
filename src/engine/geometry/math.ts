@@ -1,5 +1,6 @@
 import type { Memory } from "../memory.ts";
 import { random } from "../random.ts";
+import { register } from "../dispatch.ts";
 
 const OBJECT_LIST = 0x33ac;
 const OBJECT_SLOTS = 30;
@@ -304,3 +305,21 @@ export function animate(m: Memory, seq: number, timerPtr: number, period: number
   m.set16(outPtr, s8(v));
   return wrapped;
 }
+
+register("fff:000c", isqrt);
+register("fff:0067", distance);
+register("fff:0ca3", nextObjectOfClass);
+register("fff:0cdc", angle);
+register("fff:0dc6", sector);
+register("fff:0c4b", keyDirection);
+register("fff:0b90", readKeys);
+register("fff:1dc0", readJoystick);
+register("fff:1d22", offsetRows);
+register("fff:11f7", nameMatches);
+register("fff:2b76", clearObjectFlag35);
+register("fff:2bfa", shuffleNames);
+register("fff:2c36", namePick);
+register("fff:2ba5", saveVideoMode);
+register("fff:2b4b", egaColor);
+register("fff:2b5e", cgaColor);
+register("fff:2652", animate);

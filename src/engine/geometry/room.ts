@@ -1,5 +1,6 @@
 import type { Memory } from "../memory.ts";
 import { drawSprite, maskWithFrame } from "../vga.ts";
+import { register } from "../dispatch.ts";
 
 export const CELLS = 0x357a; // 13 rows x 10 cols x 7 bytes (row stride 70) in the scene block at DS:34e4
 export const CURRENT_CELL = 0x612a;
@@ -318,3 +319,25 @@ export function maskEdges(m: Memory): void {
     maskCellEdges(m, m.s8(e), m.s8(e + 1), m.u8(e + 2));
   }
 }
+
+register("fff:1061", cellAt);
+register("fff:1091", cellOrigin);
+register("fff:10d2", step);
+register("fff:1135", worldToCell);
+register("fff:1252", neighbours);
+register("fff:171d", log4);
+register("fff:1741", wallShadeOwn);
+register("fff:17e0", wallShadeNeighbour);
+register("fff:187f", wallKind);
+register("fff:0112", blit);
+register("fff:14de", drawLowWall);
+register("fff:1601", drawTallWall);
+register("fff:1350", drawFloor);
+register("fff:190f", drawWalls);
+register("fff:1a63", drawAllLowWalls);
+register("fff:1abe", drawAllTallWalls);
+register("fff:18b5", edgeList);
+register("fff:2257", prepareFloorMask);
+register("fff:22e2", maskPart);
+register("fff:2533", maskCellEdges);
+register("fff:24ee", maskEdges);
