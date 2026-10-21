@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>D/Generation viewer</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font: 13px/1.4 ui-monospace, Menlo, monospace;
+      }
+      body {
+        margin: 0;
+        background: #0b0b10;
+        color: #c8c8d4;
+      }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 14px;
+        border-bottom: 1px solid #23232e;
+      }
+      header .tabs {
+        display: flex;
+        gap: 2px;
+        margin-right: 8px;
+      }
+      button,
+      select {
+        font: inherit;
+        color: inherit;
+        background: #17171f;
+        border: 1px solid #2c2c3a;
+        border-radius: 4px;
+        padding: 4px 10px;
+      }
+      button[aria-pressed="true"] {
+        background: #2a2a6a;
+        border-color: #4a4ab0;
+      }
+      #music {
+        margin-left: auto;
+      }
+      main {
+        padding: 14px;
+      }
+      canvas {
+        image-rendering: pixelated;
+        display: block;
+        background: #000;
+      }
+      #status {
+        margin-top: 8px;
+        color: #8a8a9a;
+        min-height: 1.4em;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="tabs" id="tabs"></div>
+      <select id="item" aria-label="Item"></select>
+      <select id="palette" aria-label="Palette"></select>
+      <button id="music" type="button">Music: off</button>
+    </header>
+    <main>
+      <canvas id="view"></canvas>
+      <div id="status"></div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
