@@ -10,8 +10,7 @@ All DOS words are little-endian.
 * `./amiga/aga/` and `./amiga/ocs/` are the files from the Amiga disk images in `./amiga-src/`, unpacked once with amitools:
 
 ```sh
-uv venv tmp/re-venv && uv pip install --python tmp/re-venv/bin/python amitools
-tmp/re-venv/bin/xdftool "amiga-src/D-Generation (AGA)_Disk1.adf" unpack tmp/aga1   # repeat per disk
+uvx --from amitools xdftool "amiga-src/D-Generation (AGA)_Disk1.adf" unpack tmp/aga1   # repeat per disk
 ```
 
 Disk 1 and disk 2 of each release are merged into one folder.
@@ -21,6 +20,15 @@ Disk 1 and disk 2 of each release are merged into one folder.
 * `bun dev` starts the viewer: rooms, sprite sheets, delta sets, music.
 * `bun run extract` writes PNG sheets, rendered rooms and JSON metadata to `./out/`.
 * `bun run check` type-checks.
+* `bun run truth:rooms` runs the original `GAME.EXE` in a small DOS emulator (`./tools/emu/dosemu.py`, unicorn via `uv`) and saves how it draws every room to `./out/truth/`.
+* `bun run verify:rooms` compares `./src/render/room.ts` with those captures.
+
+## Emulator
+
+`./tools/emu/dosemu.py` loads `GAME.EXE` into 16-bit real mode and emulates only what the game uses: DOS file, memory and vector calls, mode 13h, the VGA DAC ports and a timer IRQ.
+The game boots into its demo mode unmodified.
+`Dos.call(offset, *args)` runs any near function of the code segment on the game's own stack, which is how the truth script loads (`0:354e`) and draws (`0:238a`) each room.
+The game draws into a back buffer whose segment is at `DS:27cc`, not into `A000`.
 
 ## Palettes - `DATA/*.PAL`
 
@@ -97,7 +105,7 @@ Cell `(row, col)` has its origin at `x = (col*14 - 2 + 10) * 2`, `y = row*14 - 2
 
 | Chunk | Record | Meaning |
 |---|---|---|
-| `0x0a` | 5 bytes: index, x word, y word | delta piece; y bit 15 = foreground, bit 14 = hidden until a game event |
+| `0x0a` | 5 bytes: index, x word, y word | delta piece; y bit 15 = foreground; bit 14 keeps bit 15 for foreground pieces (drawn at a negative y) and pushes background pieces below the screen |
 | `0x0b` | 8 bytes: x0, y0, x1 words, color, mode | dotted vertical drops along a 2:1 slope (`0:c015`) |
 | `0x11` | 10 bytes: x0, y0, x1, y1 words, color word | three-pixel isometric lines (`0:c0d2`) |
 | `0x0e` | blob | processed by `0:3771`, not decoded |
@@ -114,7 +122,14 @@ Drawing order (`0:238a`):
 6. Drop chunks, then line chunks.
 7. Foreground delta pieces.
 
+Tiles and walls are drawn with a depth shade: the VGA blitter adds `row - 1` to every color up to `0x4f` (the scheme range).
+Where two walls meet, the wall frame loses its first 4 or last 3 columns, depending on the walls in the same cell and in the cells to the left and right (`fff:1741`, `fff:17e0`, `fff:1252`).
+The play view is clipped at row 181 (`DS:3a7e`): sprites stop above it, single pixels reach it, drops reach row 182.
+A drop column draws over empty and `0xfd` pixels, one dot every `mode & 7 + 1` rows, and stops at anything else.
+
 Scene 138 skips the walls and forces the red scheme.
+The original only keeps the top 100 rows of `BACK1.DAT` (a 32000-byte buffer), so backdrop pixels below row 100 show whatever memory follows it; rooms 3, 10 and 22 have a few such pixels and the port shows the real backdrop there.
+Otherwise all 130 rooms match the original pixel for pixel (`bun run verify:rooms`).
 Objects (doors, lifts, enemies, items) are drawn by the object system and are not decoded yet.
 
 ## Other DOS files

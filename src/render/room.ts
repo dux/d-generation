@@ -28,9 +28,11 @@ const LINE_STEPS = [[-1, 0], [-1, 2], [0, 2], [1, 2], [1, 0], [1, -2], [0, -2], 
 const LINE_COLORS = [0xb3, 0xb5, 0xb7, 0xb1, 0xb3, 0xb5, 0xb7, 0xb1]; // DS:2680
 const TALL_WALL_RISE = 0x24;
 const NO_WALLS_SCENE = 138; // index 0x89: walls skipped, scheme forced to red
+const VIEW_BOTTOM = 181; // play view clip row (GAME.EXE 0:271c)
 
 export function renderRoom(screen: Screen, scene: Scene, sceneNumber: number, assets: RoomAssets): Scheme {
   let scheme: Scheme = 0;
+  screen.bottom = VIEW_BOTTOM;
   screen.clear();
   drawTiles(screen, scene, assets);
   drawFloorLines(screen, scene);
@@ -74,7 +76,7 @@ function drawTiles(screen: Screen, scene: Scene, assets: RoomAssets): void {
         const variant = (cell[5] & bit ? 1 : 0) + (cell[6] & bit ? 2 : 0) === 3 ? 3 : 0;
         const frame = frameAt(assets.tile, variant, slot);
         const [ox, oy] = TILE_OFFSETS[slot];
-        screen.blit(frame, x + ox + frame.x, y + oy - frame.height - frame.y + 3);
+        screen.blit(frame, x + ox + frame.x, y + oy - frame.height - frame.y + 3, { shift: row - 1, schemeOnly: true });
       }
     }
   }
@@ -98,16 +100,35 @@ function drawFloorLines(screen: Screen, scene: Scene): void {
   }
 }
 
-// DLTSET pieces listed by the scene (GAME.EXE 0:c174).
+// DLTSET pieces listed by the scene (GAME.EXE 0:c174). Foreground pieces with y bit 14 keep bit 15 and land
+// at a negative y; every other piece drops bit 15, so a set bit 14 puts it far below the screen.
 function drawPieces(screen: Screen, scene: Scene, assets: RoomAssets, foreground: boolean): void {
   for (const piece of scene.pieces) {
     const entry = assets.deltas.entries[piece.index];
-    if (piece.foreground !== foreground || piece.hidden || !entry) continue;
-    drawDelta(screen, entry, piece.x, piece.y, assets.backdrop);
+    if (piece.foreground !== foreground || !entry) continue;
+    const y = foreground && piece.y & 0x4000 ? (piece.y | 0x8000) - 0x10000 : piece.y & 0x7fff;
+    drawDelta(screen, entry, piece.x, y, assets.backdrop);
   }
 }
 
+// Neighbor wall bits used to trim wall joins (GAME.EXE fff:1252): the left cell's 0x0a bits
+// (tall pass: only tall ones) and the right cell's 0xa0 bits that are tall.
+function neighborWalls(scene: Scene, row: number, col: number, tall: boolean): [number, number] {
+  let left = 0;
+  let right = 0;
+  if (col > 0) {
+    const cell = cellAt(scene, row, col - 1);
+    left = cell[0] & 0x0a & (tall ? (cell[2] & 0x55) << 1 : 0xff);
+  }
+  if (col < COLS - 1) {
+    const cell = cellAt(scene, row, col + 1);
+    right = cell[0] & 0xa0 & ((cell[2] & 0x55) << 1);
+  }
+  return [left, right];
+}
+
 // Walls from cell byte 0; the tall pass adds TWALL tops where byte 2 has bit >> 1 set (GAME.EXE fff:190f).
+// Colors in the scheme range are shifted by row - 1 for depth.
 function drawWalls(screen: Screen, scene: Scene, assets: RoomAssets, tall: boolean, scheme: Scheme): Scheme {
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
@@ -116,19 +137,28 @@ function drawWalls(screen: Screen, scene: Scene, assets: RoomAssets, tall: boole
       if (!mask) continue;
       const x = (col * CELL - 2 + ORIGIN_X) * 2;
       const y = row * CELL - 2 + ORIGIN_Y;
+      const [left, right] = neighborWalls(scene, row, col, tall);
       for (const bit of WALL_BITS) {
         if (!(mask & bit)) continue;
         // Bits 0x02/0x08/0x20/0x80 map to directions 0..3.
         const direction = Math.log2(bit) >> 1;
+        // Trim columns where this wall meets another one in the same or a neighboring cell (fff:1741, fff:17e0).
+        let skipLeft = 0;
+        let skipRight = 0;
+        if ((direction === 2 && mask & 0x08) || (direction === 3 && mask & 0x02)) skipRight = 3;
+        else if ((direction === 0 && mask & 0x80) || (direction === 1 && mask & 0x20)) skipLeft = 4;
+        if ((direction === 2 && left & 0x08) || (direction === 3 && left & 0x02)) skipLeft = 4;
+        else if ((direction === 0 && right & 0x80) || (direction === 1 && right & 0x20)) skipRight = 3;
         const state = (cell[2] & bit ? 1 : 0) + (cell[3] & bit ? 2 : 0);
         if (state !== 2) scheme = state as Scheme;
         const [ox, oy] = WALL_OFFSETS[direction];
+        const options = { shift: row - 1, schemeOnly: true, skipLeft, skipRight };
         if (tall) {
           const frame = frameAt(assets.tallWall, direction, 0);
-          screen.blit(frame, x + ox + frame.x, y + oy - TALL_WALL_RISE - frame.y - 3);
+          screen.blit(frame, x + ox + frame.x, y + oy - TALL_WALL_RISE - frame.y - 3, options);
         } else {
           const frame = frameAt(assets.wall, direction, state === 2 ? 1 : 0);
-          screen.blit(frame, x + ox + frame.x, y + oy - frame.y - 2);
+          screen.blit(frame, x + ox + frame.x, y + oy - frame.y - 2, options);
         }
       }
     }
@@ -136,29 +166,29 @@ function drawWalls(screen: Screen, scene: Scene, assets: RoomAssets, tall: boole
   return scheme;
 }
 
-// Dotted column from (x, y) down (or up with mode bit 3) through empty pixels;
-// mode & 7 is the gap, color 0xfd lets the column pass (GAME.EXE VGA 23ac:012f).
+// Dotted column from (x, y) down (or up with mode bit 3) over empty (0) and see-through (0xfd) pixels,
+// one dot every mode & 7 + 1 rows; stops at any other pixel (GAME.EXE VGA 23ac:012f).
+// Going down it may write one row past the view clip, like the original.
 function dropColumn(screen: Screen, x: number, y: number, color: number, mode: number): void {
   if (x < 0 || x >= screen.width || y < 0 || y >= screen.height) return;
   const up = (mode & 8) !== 0;
   const gap = Math.min((mode & 7) + 1, 7);
   const step = up ? -1 : 1;
-  let rows = up ? y : screen.height - 1 - y;
-  while (rows >= 0 && screen.get(x, y) === 0) {
-    screen.plot(x, y, color);
-    let left = gap;
-    for (;;) {
+  const pixel = (row: number) => (row >= 0 && row < screen.height ? screen.get(x, row) : 1);
+  let rows = up ? y : screen.bottom + 1 - y;
+  for (;;) {
+    if (rows < 0) return;
+    const under = pixel(y);
+    if (under !== 0 && under !== 0xfd) return;
+    screen.pixels[y * screen.width + x] = color;
+    // Skip ahead up to gap rows while empty, passing over 0xfd without resetting the gap.
+    for (let left = gap; ; ) {
       y += step;
       rows--;
-      if (rows < 0) return;
-      const pixel = screen.get(x, y);
-      if (pixel === 0) {
-        if (--left === 0) break;
-      } else if (pixel === 0xfd) {
-        if (--left === 0) break;
-      } else {
-        return;
-      }
+      left--;
+      if (left !== 0 && pixel(y) === 0) continue;
+      if (left !== 0 && pixel(y) === 0xfd) continue;
+      break;
     }
   }
 }

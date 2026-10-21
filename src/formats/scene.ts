@@ -27,13 +27,12 @@ export const SCENE_NUMBERS = [
   ...Array.from({ length: 42 }, (_, i) => 101 + i),
 ];
 
-// DLTSET piece placed on the room; hidden pieces are revealed by game events.
+// DLTSET piece placed on the room. y is the raw word: bit 15 = foreground, bit 14 moves the piece off screen.
 export interface Piece {
   index: number;
   x: number;
   y: number;
   foreground: boolean;
-  hidden: boolean;
 }
 
 // Dotted vertical drops along a 2:1 slanted run (drawer GAME.EXE 0:c015).
@@ -90,10 +89,9 @@ export function parseScene(bytes: Uint8Array): Scene {
           const y = word(i + 3);
           scene.pieces.push({
             index: bytes[at + i],
-            x: word(i + 1),
-            y: y & 0x3fff,
+            x: view.getInt16(at + i + 1, true),
+            y,
             foreground: (y & 0x8000) !== 0,
-            hidden: (y & 0x4000) !== 0,
           });
         }
         break;
