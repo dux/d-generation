@@ -8,7 +8,8 @@
     "check": "tsc --noEmit",
     "extract": "bun tools/extract.ts",
     "truth:rooms": "uv run -q --with unicorn tools/emu/room_truth.py",
-    "verify:rooms": "bun tools/verify-rooms.ts"
+    "verify:rooms": "bun tools/verify-rooms.ts",
+    "difftest": "bun tools/difftest.ts"
   },
   "devDependencies": {
     "@types/bun": "^1.4.3",

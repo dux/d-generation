@@ -60,6 +60,7 @@ class Dos:
         self.keys = []
         self.log = []
         self.exited = False
+        self.halt = False
         mu.hook_add(UC_HOOK_INTR, self.on_intr)
         mu.hook_add(UC_HOOK_INSN, self.on_in, None, 1, 0, UC_X86_INS_IN)
         mu.hook_add(UC_HOOK_INSN, self.on_out, None, 1, 0, UC_X86_INS_OUT)
@@ -220,6 +221,8 @@ class Dos:
         self.w(UC_X86_REG_CS, seg); self.w(UC_X86_REG_IP, off)
 
     def run(self, steps, slice_=20000, irq=True):
+        """Runs `steps` slices of `slice_` instructions with a timer IRQ between them.
+        A hook can set self.halt and call emu_stop() to pause exactly where it is (no IRQ is injected)."""
         mu = self.mu
         for _ in range(steps):
             if self.exited: return
@@ -229,6 +232,9 @@ class Dos:
             except UcError as e:
                 cs, ip = self.r(UC_X86_REG_CS), self.r(UC_X86_REG_IP)
                 raise RuntimeError(f'{e} at {cs:04x}:{ip:04x} (image seg {cs - LOAD:04x})')
+            if self.halt:
+                self.halt = False
+                return
             self.ticks = (self.ticks + 1) & 0xffff
             self.mu.mem_write(0x46c, struct.pack('<I', self.ticks))
             if irq: self.raise_irq(0x08)

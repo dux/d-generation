@@ -30,6 +30,7 @@ def boot():
 
     def stop(mu, addr, size, _):
         reached.append(1)
+        emu.halt = True
         mu.emu_stop()
 
     hook = emu.mu.hook_add(UC_HOOK_CODE, stop, None, entry, entry)
