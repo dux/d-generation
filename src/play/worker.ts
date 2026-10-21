@@ -2,12 +2,13 @@
 // blocking loops (title delays, menus) run unchanged.
 import "../engine/index.ts";
 import { bootGame } from "../engine/boot.ts";
-import { gameFrame } from "../engine/core/game.ts";
+import { PLAYER_STATE, gameFrame } from "../engine/core/game.ts";
 import { DosExit, Machine, keyboardInterrupt } from "../engine/dos/machine.ts";
 import type { Memory } from "../engine/memory.ts";
 import { KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE, SLEEP, type StartMessage, type WorkerMessage } from "./shared.ts";
 
 const PIT_HZ = 1193182;
+const LIVES = 5; // the game's starting lives (0:1f87)
 
 function post(message: WorkerMessage): void {
   postMessage(message);
@@ -41,10 +42,13 @@ self.onmessage = (event: MessageEvent<StartMessage>) => {
     deliverKeys();
     Atomics.wait(ctrl, SLEEP, 0, 4);
   };
+  dos.saved = (path, data) => post({ type: "saved", path, data: data.slice().buffer });
 
   try {
     m = bootGame(dos, new Uint8Array(memory), new Uint8Array(dac));
-    while (!gameFrame(m));
+    // Unlimited lives: top the counter back up after every frame, so a lost life never reaches the checkpoint
+    // restart. The ported game code itself stays as in GAME.EXE.
+    while (!gameFrame(m)) if (m.u8(PLAYER_STATE) < LIVES) m.set8(PLAYER_STATE, LIVES);
     post({ type: "exit", code: 0, output: dos.output });
   } catch (err) {
     if (err instanceof DosExit) post({ type: "exit", code: err.code, output: dos.output });

@@ -6,6 +6,23 @@ import { CONTROL_INTS, KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE, type St
 const SCREEN = 0xa0000;
 const WIDTH = 320;
 const HEIGHT = 200;
+// Files the game wrote (save games), by DOS path, base64 in localStorage.
+const SAVED_PREFIX = "d-generation:";
+
+function savedFiles(): [string, ArrayBuffer][] {
+  const files: [string, ArrayBuffer][] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)!;
+    if (!key.startsWith(SAVED_PREFIX)) continue;
+    const data = Uint8Array.from(atob(localStorage.getItem(key)!), (c) => c.charCodeAt(0));
+    files.push([key.slice(SAVED_PREFIX.length), data.buffer]);
+  }
+  return files;
+}
+
+function keepFile(path: string, data: ArrayBuffer): void {
+  localStorage.setItem(SAVED_PREFIX + path, btoa(String.fromCharCode(...new Uint8Array(data))));
+}
 
 // KeyboardEvent.code -> scancode set 1 (arrows and the navigation block as their keypad codes, no E0 prefix).
 const SCANCODES: Record<string, number> = {
@@ -38,6 +55,8 @@ export async function startGame(canvas: HTMLCanvasElement, onStatus: (text: stri
       return [path.replaceAll("/", "\\"), await res.arrayBuffer()];
     }),
   );
+  // After the shipped files, so a saved file replaces the original of the same name.
+  files.push(...savedFiles());
   const memory = new SharedArrayBuffer(0x100000);
   const dac = new SharedArrayBuffer(768);
   const control = new SharedArrayBuffer(CONTROL_INTS * 4);
@@ -47,12 +66,13 @@ export async function startGame(canvas: HTMLCanvasElement, onStatus: (text: stri
 
   const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
   worker.onmessage = ({ data }: MessageEvent<WorkerMessage>) => {
-    if (data.type === "exit") onStatus(`game exited (${data.code})${data.output ? `: ${data.output}` : ""}`);
+    if (data.type === "saved") keepFile(data.path, data.data);
+    else if (data.type === "exit") onStatus(`game exited (${data.code})${data.output ? `: ${data.output}` : ""}`);
     else onStatus(`game crashed: ${data.message}`);
   };
   const start: StartMessage = { files, memory, dac, control };
   worker.postMessage(start, files.map(([, data]) => data));
-  onStatus("running");
+  onStatus("running - Alt-S save, Alt-O restore, unlimited lives");
 
   const ctx = canvas.getContext("2d")!;
   canvas.width = WIDTH;

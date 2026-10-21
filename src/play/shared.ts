@@ -16,4 +16,7 @@ export interface StartMessage {
   control: SharedArrayBuffer;
 }
 
-export type WorkerMessage = { type: "exit"; code: number; output: string } | { type: "error"; message: string };
+export type WorkerMessage =
+  | { type: "exit"; code: number; output: string }
+  | { type: "error"; message: string }
+  | { type: "saved"; path: string; data: ArrayBuffer }; // a file the game wrote (DOS path), for the page to keep

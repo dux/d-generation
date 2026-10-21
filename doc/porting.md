@@ -68,6 +68,8 @@ The demo runs identically for at least 8000 frames.
 
 In the browser (`./src/play/`) the game runs in a worker on SharedArrayBuffers: the page draws A000 with the DAC every animation frame and pushes scancodes into a ring the worker delivers at `pace`/`idle`.
 SharedArrayBuffer needs cross-origin isolation: `vite.config.ts` sends `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`; a production host must send them too.
+Files the game writes (the Alt-S save `DATA\SAVE.DAT`, restored with Alt-O) reach the page through `Machine.saved` and are kept in localStorage as `d-generation:<DOS path>`; at start they replace the shipped file of the same name.
+The browser build has unlimited lives: the worker tops the lives counter (`DS:3362`) back up to 5 after every frame, so the ported game code stays as in GAME.EXE.
 
 ## Coverage
 

@@ -53,7 +53,7 @@ export class Machine {
   // PIT channel 0 reload value written through port 40h (low byte, then high byte); 0 means 65536.
   pitDivisor = 0;
   pitHighByte = false;
-  // BIOS shift state (1 left, 2 right) for translating scancodes.
+  // BIOS shift state (1 left, 2 right, 8 alt) for translating scancodes.
   shift = 0;
   // Text written to stdout/stderr.
   output = "";
@@ -64,6 +64,8 @@ export class Machine {
   // Called when the game finds the BIOS keyboard buffer empty (int 16h status): the browser delivers pending key
   // events (which may fill it) and yields briefly so "press a key" loops do not spin hot.
   idle?: () => void;
+  // Called when a file the game created is closed (save games), with its normalized path and data.
+  saved?: (path: string, data: Uint8Array) => void;
   // Game files by normalized DOS path.
   readonly files = new Map<string, Uint8Array>();
 
@@ -317,7 +319,10 @@ export function int21(m: Memory, r: Regs): void {
     }
     case 0x3e: {
       const f = mc.open.get(r.bx);
-      if (f?.created) mc.files.set(f.created, f.data);
+      if (f?.created) {
+        mc.files.set(f.created, f.data);
+        mc.saved?.(f.created, f.data);
+      }
       mc.open.delete(r.bx);
       ok(r);
       break;
@@ -483,22 +488,24 @@ ASCII[0x1c] = [0x0d, 0x0d];
 ASCII[0x39] = [0x20, 0x20];
 const LEFT_SHIFT = 0x2a;
 const RIGHT_SHIFT = 0x36;
+const ALT = 0x38;
+const ALT_BIT = 8;
 
-// BIOS keyboard handler (INT 09h default): make codes go into the int 16h buffer (function keys and arrows
-// with ascii 0), shift state is tracked.
+// BIOS keyboard handler (INT 09h default): make codes go into the int 16h buffer (function keys, arrows and
+// Alt combinations with ascii 0), shift and alt state are tracked.
 function biosKeyboard(m: Memory, scancode: number): void {
   const mc = machine(m);
   const code = scancode & 0x7f;
   const release = (scancode & 0x80) !== 0;
-  if (code === LEFT_SHIFT || code === RIGHT_SHIFT) {
-    const bit = code === LEFT_SHIFT ? 1 : 2;
+  if (code === LEFT_SHIFT || code === RIGHT_SHIFT || code === ALT) {
+    const bit = code === LEFT_SHIFT ? 1 : code === RIGHT_SHIFT ? 2 : ALT_BIT;
     mc.shift = release ? mc.shift & ~bit : mc.shift | bit;
     return;
   }
   if (release) return;
   const keys = mc.keys;
   if (keys.length >= 15) return;
-  const ascii = ASCII[code]?.[mc.shift ? 1 : 0] ?? 0;
+  const ascii = mc.shift & ALT_BIT ? 0 : (ASCII[code]?.[mc.shift ? 1 : 0] ?? 0);
   keys.push((code << 8) | ascii);
 }
 
