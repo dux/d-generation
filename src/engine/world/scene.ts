@@ -1,3 +1,4 @@
+import { waitTick } from "../dos/hardware.ts";
 import { call, register } from "../dispatch.ts";
 import { cellAt } from "../geometry/room.ts";
 import { drawToFront, drawToPanel, restoreDrawTarget } from "../geometry/draw.ts";
@@ -391,6 +392,7 @@ export function delay(m: Memory, ticks: number, interruptible: number): number {
         break;
       }
     }
+    waitTick(m);
     if (((timerGet(m, slot) << 16) >> 16) <= 0) break;
   }
   timerThaw(m, slot);

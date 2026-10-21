@@ -1,3 +1,4 @@
+import { waitTick } from "../dos/hardware.ts";
 import { call, register } from "../dispatch.ts";
 import { drawBox, drawTallBox, drawText, drawToPanel, restoreDrawTarget } from "../geometry/draw.ts";
 import { blit } from "../geometry/room.ts";
@@ -477,7 +478,9 @@ function pollDialog(m: Memory, keyClick: number): { dir: number; key: number } {
   return { dir, key };
 }
 
+// The busy waits at 0:ac71, 0:acf1 and 0:b46a.
 function waitFrameTimer(m: Memory): void {
+  do waitTick(m);
   while (call(m, "0:e55a", m.s8(0x5f62) & 0xffff) !== 0);
 }
 

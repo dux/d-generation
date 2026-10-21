@@ -4,6 +4,7 @@ import { clearObjectFlag35, shuffleNames } from "../geometry/math.ts";
 import { updateBox } from "../geometry/objects.ts";
 import { drawAllLowWalls, drawAllTallWalls } from "../geometry/room.ts";
 import type { Memory } from "../memory.ts";
+import { waitTick } from "../dos/hardware.ts";
 import { memcpy, memset, reset61a8, sprintf, timerEnable, timerExchange, timerFreeze, timerGet, timerSet, timerThaw } from "../runtime.ts";
 import { setPalette } from "../vga.ts";
 import {
@@ -123,12 +124,13 @@ export function placeRespawn(m: Memory): void {
 }
 
 // 0:1ff6 frameSync(): the frame boundary. Waits until the frame timer reaches 2 ticks per frame (the original spins
-// here while the timer interrupt counts); every second frame turns the elapsed ticks (1..25) into the movement
+// here while the timer interrupt counts; see waitTick); every second frame turns the elapsed ticks (1..25) into the movement
 // step DS:3408 = ticks * 40 (max 0x300, halved while DS:3370 slow motion, 0 while DS:337a paused), DS:3402 unhalved.
 export function frameSync(m: Memory): void {
   m.set16(0x41e, m.u16(0x41e) + 1);
   const target = (((m.u16(0x41e) * 4) << 16) >> 16) / 2 | 0;
-  while (((timerGet(m, m.s8(FRAME_TIMER)) << 16) >> 16) < target) call(m, "0:e346");
+  do waitTick(m);
+  while (((timerGet(m, m.s8(FRAME_TIMER)) << 16) >> 16) < target);
   if (m.s16(0x41e) <= 1) return;
   m.set16(0x41e, 0);
   let ticks = (timerExchange(m, m.s8(FRAME_TIMER), 0) << 16) >> 16;

@@ -58,6 +58,9 @@ export class Machine {
   // Text written to stdout/stderr.
   output = "";
   exitCode: number | null = null;
+  // Called before every timer interrupt delivered by a wait loop (dos/hardware.ts waitTick): the browser sleeps
+  // until the tick is due; tests leave it unset.
+  pace?: () => void;
   // Game files by normalized DOS path.
   readonly files = new Map<string, Uint8Array>();
 

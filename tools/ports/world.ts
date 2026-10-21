@@ -4,17 +4,17 @@ import * as s from "../../src/engine/world/scene.ts";
 import type { Port } from "../ports.ts";
 
 export const ports: Record<string, Port> = {
-  "0:24de": { fn: (m) => o.spawn24de(m) },
+  "0:24de": { fn: (m) => o.spawn24de(m), returns: "ax" },
   "0:2500": { fn: (m) => o.spawn2500(m) },
-  "0:2539": { fn: (m, n) => o.spawn2539(m, n) },
-  "0:2565": { fn: (m) => o.spawn2565(m) },
+  "0:2539": { fn: (m, n) => o.spawn2539(m, n), returns: "ax" },
+  "0:2565": { fn: (m) => o.spawn2565(m), returns: "ax" },
   "0:25f1": { fn: (m) => o.pickRandom25f1(m) },
   "0:2656": { fn: (m, obj) => o.destroyObject(m, obj) },
   "0:266f": { fn: (m) => o.tickDying(m) },
   "0:26ad": { fn: (m, obj) => o.unlinkObject(m, obj) },
   "0:26d3": { fn: (m) => o.resetWorld(m) },
   "0:272c": { fn: (m) => o.clearObjects(m) },
-  "0:2770": { fn: (m) => o.spawnPlayer(m) },
+  "0:2770": { fn: (m) => o.spawnPlayer(m), returns: "ax" },
   "0:2818": { fn: (m, r) => o.createObject(m, r), returns: "ax" },
   "0:290b": { fn: (m, desc, out) => o.allocObject(m, desc, out), returns: "ax" },
   "0:2989": { fn: (m, obj, desc) => o.initFromDescriptor(m, obj, desc) },

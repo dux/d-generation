@@ -215,6 +215,13 @@ export function startupCheck(): void {}
 // 0:fc69 start(tail, argc): console flags for handles 0-2, splits the command tail (copied to the heap) at spaces
 // and tabs into argv (argv[0] = ""), calls main(argc, argv) (0:1a9c) and exits with 0.
 export function start(m: Memory, tail: number, argc: number): void {
+  const [n, argv] = startArgs(m, tail, argc);
+  call(m, "0:1a9c", n, argv);
+  exit(m, 0);
+}
+
+// The part of 0:fc69 before main(): returns main's (argc, argv). The browser runs main() as init + frame loop.
+export function startArgs(m: Memory, tail: number, argc: number): [number, number] {
   for (let h = 0; h < 3; h++) m.set8(IS_CONSOLE + h, isatty(m, h));
   const argv = sbrk(m, (argc * 2 + 2) & 0xffff);
   m.set16(ARGV, argv);
@@ -242,8 +249,7 @@ export function start(m: Memory, tail: number, argc: number): void {
     }
   }
   m.set16(slot, 0);
-  call(m, "0:1a9c", m.u16(ARGC), m.u16(ARGV));
-  exit(m, 0);
+  return [m.u16(ARGC), m.u16(ARGV)];
 }
 
 register("0:efd5", farmalloc);

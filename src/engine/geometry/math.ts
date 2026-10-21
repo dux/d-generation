@@ -1,6 +1,7 @@
 import type { Memory } from "../memory.ts";
 import { random } from "../random.ts";
 import { register } from "../dispatch.ts";
+import { joystickPresent, readJoystick as readJoystickAxes } from "../dos/hardware.ts";
 
 const OBJECT_LIST = 0x33ac;
 const OBJECT_SLOTS = 30;
@@ -306,6 +307,43 @@ export function animate(m: Memory, seq: number, timerPtr: number, period: number
   return wrapped;
 }
 
+const JOYSTICK_ON = 0x6229;
+const JOYSTICK_BUTTONS = 0x33fe;
+const JOYSTICK_X = 0x33fa; // dword
+const JOYSTICK_Y = 0x33f6; // dword
+const JOYSTICK_CENTER_X = 0x622a; // dword
+const JOYSTICK_CENTER_Y = 0x622e; // dword
+
+function setDword(m: Memory, at: number, v: number): void {
+  m.set16(at, v & 0xffff);
+  m.set16(at + 2, (v >>> 16) & 0xffff);
+}
+
+// fff:0de9 calibrateJoystick(): reads the stick and takes twice the reading as its centre; turns it off on failure.
+export function calibrateJoystick(m: Memory): void {
+  m.set8(JOYSTICK_ON, 1);
+  if ((readJoystickAxes(m, JOYSTICK_X, JOYSTICK_Y) & 0xffff) === 0xffff) {
+    m.set8(JOYSTICK_ON, 0);
+    return;
+  }
+  setDword(m, JOYSTICK_CENTER_X, (m.u16(JOYSTICK_X) | (m.u16(JOYSTICK_X + 2) << 16)) * 2);
+  setDword(m, JOYSTICK_CENTER_Y, (m.u16(JOYSTICK_Y) | (m.u16(JOYSTICK_Y + 2) << 16)) * 2);
+}
+
+// fff:0e2f initJoystick(): calibrates a present joystick, otherwise no buttons and a 200/200 centre.
+export function initJoystick(m: Memory): void {
+  const present = joystickPresent(m) & 0xff;
+  m.set8(JOYSTICK_ON, present);
+  if (present) {
+    m.set16(JOYSTICK_BUTTONS, readJoystickAxes(m, JOYSTICK_X, JOYSTICK_Y));
+    calibrateJoystick(m);
+    return;
+  }
+  m.set16(JOYSTICK_BUTTONS, 0xffff);
+  setDword(m, JOYSTICK_CENTER_X, 0xc8);
+  setDword(m, JOYSTICK_CENTER_Y, 0xc8);
+}
+
 register("fff:000c", isqrt);
 register("fff:0067", distance);
 register("fff:0ca3", nextObjectOfClass);
@@ -323,3 +361,5 @@ register("fff:2ba5", saveVideoMode);
 register("fff:2b4b", egaColor);
 register("fff:2b5e", cgaColor);
 register("fff:2652", animate);
+register("fff:0de9", calibrateJoystick);
+register("fff:0e2f", initJoystick);

@@ -1,4 +1,5 @@
 import { call, register } from "../dispatch.ts";
+import { setVideoMode } from "../dos/hardware.ts";
 import { drawToFront, drawToPanel, restoreDrawTarget, selectBarPalette } from "../geometry/draw.ts";
 import type { Memory } from "../memory.ts";
 import { farToLinear, free, malloc, memcpy, sprintf, timerEnable, timerFreeze, timerGet, timerSet, timerThaw } from "../runtime.ts";
@@ -361,7 +362,7 @@ export function loadPalette(m: Memory, buf: number, colors: number, name: number
   m.pop(0x20);
 }
 
-// 0:0e18 initVga(restore): screen geometry globals, mode 13h (driver, not ported), the palette buffers DS:30c0..30c8
+// 0:0e18 initVga(restore): screen geometry globals, mode 13h, the palette buffers DS:30c0..30c8
 // loaded from their files, the master palette into the DAC.
 export function initVga(m: Memory, restore: number): void {
   m.set16(0x30b0, 0x3b);
@@ -373,6 +374,7 @@ export function initVga(m: Memory, restore: number): void {
   m.set16(0x309c, 0xc8);
   m.set16(0x30bc, 0xa0);
   m.set16(0x30be, 0x140);
+  setVideoMode(m, 0x13);
   if (restore) call(m, "fff:2bd5");
   m.set16(0x30c0, malloc(m, 0x300));
   m.set16(0x30c2, malloc(m, 0x300));

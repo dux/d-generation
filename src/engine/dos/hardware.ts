@@ -3,7 +3,7 @@
 import { callNear, register } from "../dispatch.ts";
 import type { Memory } from "../memory.ts";
 import { timerFree } from "../runtime.ts";
-import { ZF, chain, codeSegment, inPort, int10, int16, int21, outPort, regs } from "./machine.ts";
+import { ZF, chain, codeSegment, inPort, int10, int16, int21, intr, machine, outPort, raise, regs } from "./machine.ts";
 
 // Timer slots counted by the timer tick (owned by runtime.ts): 7 x { flags, counter }.
 const TIMER_SLOTS = 0x998c;
@@ -340,6 +340,23 @@ export function restoreVideo(m: Memory): number {
   return r.ax;
 }
 
+
+// 1504:000e setVideoMode(mode): marks an 80-column colour display in the BIOS equipment byte (0:0410) and sets the
+// mode through int 10h. Lives in the EGA driver segment but is used for mode 13h as well.
+export function setVideoMode(m: Memory, mode: number): void {
+  m.bytes[0x410] = (m.bytes[0x410] & 0xcf) | 0x20;
+  intr(m, 0x10, regs(m, { ax: mode & 0xff }));
+}
+
+// The game's wait loops (frame sync 0:2016, delay 0:3b71, menu pauses 0:ac71/0:acf1/0:b46a) poll a timer slot while
+// the timer interrupt moves it. The port has no asynchronous interrupts: before every poll of such a loop one timer
+// interrupt is delivered, after the host's pacing (real time in the browser). tools/emu/lockstep.py runs the
+// original under the same rule.
+export function waitTick(m: Memory): void {
+  machine(m).pace?.();
+  raise(m, 8);
+}
+
 register("0:ef5b", inportb);
 register("0:ef70", outportb);
 register("14c8:034f", inportbFar);
@@ -367,3 +384,4 @@ register("14c8:01e9", readJoystick);
 register("14c8:02af", joystickPresent);
 register("14fd:000a", detectAdapter);
 register("fff:2bd5", restoreVideo);
+register("1504:000e", setVideoMode);

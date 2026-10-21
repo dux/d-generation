@@ -23,19 +23,20 @@ export function classDescriptor(m: Memory, obj: number): number {
 }
 
 // Builds a 4-byte creation record on the stack and creates the object.
-function createFrom(m: Memory, b0: number, b1: number, b2: number, b3: number): void {
+function createFrom(m: Memory, b0: number, b1: number, b2: number, b3: number): number {
   const rec = m.push(4);
   m.set8(rec, b0);
   m.set8(rec + 1, b1);
   m.set8(rec + 2, b2);
   m.set8(rec + 3, b3);
-  createObject(m, rec);
+  const obj = createObject(m, rec);
   m.pop(4);
+  return obj;
 }
 
 // 0:24de spawn24de(): creates class 7 object (record 87 36 2e 00).
-export function spawn24de(m: Memory): void {
-  createFrom(m, 0x87, 0x36, 0x2e, 0);
+export function spawn24de(m: Memory): number {
+  return createFrom(m, 0x87, 0x36, 0x2e, 0);
 }
 
 // 0:2500 spawn2500(): creates four class 3 objects (record 83 78 78 i<<4).
@@ -44,13 +45,13 @@ export function spawn2500(m: Memory): void {
 }
 
 // 0:2539 spawn2539(n): creates class 0x1a object (record da 6c 98 n<<6|0x80).
-export function spawn2539(m: Memory, n: number): void {
-  createFrom(m, 0xda, 0x6c, 0x98, (n << 6) | 0x80);
+export function spawn2539(m: Memory, n: number): number {
+  return createFrom(m, 0xda, 0x6c, 0x98, (n << 6) | 0x80);
 }
 
 // 0:2565 spawn2565(): creates class 9 object (record 89 7e 84 00).
-export function spawn2565(m: Memory): void {
-  createFrom(m, 0x89, 0x7e, 0x84, 0);
+export function spawn2565(m: Memory): number {
+  return createFrom(m, 0x89, 0x7e, 0x84, 0);
 }
 
 // 0:262c collect262c(obj): for-each callback of 0:25f1, gathers class 7 objects with +0x84 == 7 into DS:3928.
@@ -130,7 +131,7 @@ export function clearObjects(m: Memory): void {
 
 // 0:2770 spawnPlayer(): fills the player record at DS:496 from the entry point (DS:3368..336a, or the
 // current start position DS:3380/3381 and the table at DS:33a4) and creates the player.
-export function spawnPlayer(m: Memory): void {
+export function spawnPlayer(m: Memory): number {
   if (m.u8(0x3368)) {
     m.set8(0x497, m.u8(0x3368));
     m.set8(0x498, m.u8(0x3369));
@@ -154,7 +155,7 @@ export function spawnPlayer(m: Memory): void {
     m.set8(0x3369, m.u8(e + 1));
     m.set8(0x498, m.u8(e + 1));
   }
-  createObject(m, 0x496);
+  return createObject(m, 0x496);
 }
 
 // 0:2818 createObject(record): record byte 0 = class (bits 0-3, bit 7 -> +16) and direction (bits 4-6),

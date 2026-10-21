@@ -228,6 +228,9 @@ export function spawnFrom(m: Memory, src: number, owner: number, dir: number, sp
   m.set8(rec, 0x81);
   m.set8(rec + 1, m.u8(src + 8));
   m.set8(rec + 2, m.u8(src + 0xa));
+  // The original never sets record byte 3 (stack garbage, read by the new object's init); the port uses 0.
+  // tools/emu/lockstep.py zeroes it in the original too.
+  m.set8(rec + 3, 0);
   let z = (m.u8(src + 0xc) - 8) & 0xff;
   if (z & 0x80) z = 0;
   m.set8(src + 3, m.u8(DEAD_MARK));
