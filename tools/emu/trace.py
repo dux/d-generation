@@ -73,8 +73,10 @@ def main():
             cases.append({'memory': f'{name}-{k}', 'ds': session[0].emu.ds(), 'ss': pending['ss'], 'sp': pending['sp'] - (4 if far else 2),
                           'args': pending['args'], 'dac': pending['dac'].hex(), 'dac_after': bytes(session[0].emu.dac).hex(), 'ax': mu2.reg_read(UC_X86_REG_AX), 'dx': mu2.reg_read(UC_X86_REG_DX), 'changes': changes})
             mu2.hook_del(pending['hook'])
+            session[0].emu.block_irq = False
             pending.clear()
 
+        session[0].emu.block_irq = True
         pending['hook'] = mu.hook_add(UC_HOOK_CODE, on_return, None, ret_lin, ret_lin)
         mu.ctl_flush_tb()
 
@@ -91,6 +93,7 @@ def main():
             session[0].enter(n, FRAMES_PER_ROOM)
         except (RuntimeError, UcError):
             pending.clear()
+            session[0].emu.block_irq = False
             attach(Session())
     with open(os.path.join(OUT, f'{name}.json'), 'w') as f:
         json.dump({'function': label, 'far': far, 'cases': cases}, f)

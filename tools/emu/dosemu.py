@@ -61,6 +61,7 @@ class Dos:
         self.log = []
         self.exited = False
         self.halt = False
+        self.block_irq = False  # set while a traced call runs so the timer cannot interleave with it
         mu.hook_add(UC_HOOK_INTR, self.on_intr)
         mu.hook_add(UC_HOOK_INSN, self.on_in, None, 1, 0, UC_X86_INS_IN)
         mu.hook_add(UC_HOOK_INSN, self.on_out, None, 1, 0, UC_X86_INS_OUT)
@@ -235,6 +236,8 @@ class Dos:
             if self.halt:
                 self.halt = False
                 return
+            if self.block_irq:
+                continue
             self.ticks = (self.ticks + 1) & 0xffff
             self.mu.mem_write(0x46c, struct.pack('<I', self.ticks))
             if irq: self.raise_irq(0x08)
