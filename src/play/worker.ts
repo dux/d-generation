@@ -1,0 +1,53 @@
+// Runs the ported game: boot, then the frame loop, in real time. Waits are real (Atomics.wait), so the original's
+// blocking loops (title delays, menus) run unchanged.
+import "../engine/index.ts";
+import { bootGame } from "../engine/boot.ts";
+import { gameFrame } from "../engine/core/game.ts";
+import { DosExit, Machine, keyboardInterrupt } from "../engine/dos/machine.ts";
+import type { Memory } from "../engine/memory.ts";
+import { KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE, SLEEP, type StartMessage, type WorkerMessage } from "./shared.ts";
+
+const PIT_HZ = 1193182;
+
+function post(message: WorkerMessage): void {
+  postMessage(message);
+}
+
+self.onmessage = (event: MessageEvent<StartMessage>) => {
+  const { files, memory, dac, control } = event.data;
+  const ctrl = new Int32Array(control);
+  const dos = new Machine(files.map(([name, data]) => [name, new Uint8Array(data)]));
+  let m: Memory | null = null;
+
+  const deliverKeys = () => {
+    if (!m) return;
+    while (Atomics.load(ctrl, KEYS_READ) !== Atomics.load(ctrl, KEYS_WRITTEN)) {
+      const read = Atomics.load(ctrl, KEYS_READ);
+      keyboardInterrupt(m, ctrl[KEY_RING + (read % KEY_RING_SIZE)]);
+      Atomics.store(ctrl, KEYS_READ, read + 1);
+    }
+  };
+
+  // One timer tick per call (see dos/hardware.ts waitTick), at the rate the game programmed into the PIT.
+  let next = performance.now();
+  dos.pace = () => {
+    deliverKeys();
+    next += (1000 * (dos.pitDivisor || 0x10000)) / PIT_HZ;
+    const wait = next - performance.now();
+    if (wait > 0) Atomics.wait(ctrl, SLEEP, 0, wait);
+    else if (wait < -250) next = performance.now(); // fell far behind (tab in background): don't race to catch up
+  };
+  dos.idle = () => {
+    deliverKeys();
+    Atomics.wait(ctrl, SLEEP, 0, 4);
+  };
+
+  try {
+    m = bootGame(dos, new Uint8Array(memory), new Uint8Array(dac));
+    while (!gameFrame(m));
+    post({ type: "exit", code: 0, output: dos.output });
+  } catch (err) {
+    if (err instanceof DosExit) post({ type: "exit", code: err.code, output: dos.output });
+    else post({ type: "error", message: err instanceof Error ? `${err.message}\n${err.stack}` : String(err) });
+  }
+};

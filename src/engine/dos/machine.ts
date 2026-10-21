@@ -61,6 +61,9 @@ export class Machine {
   // Called before every timer interrupt delivered by a wait loop (dos/hardware.ts waitTick): the browser sleeps
   // until the tick is due; tests leave it unset.
   pace?: () => void;
+  // Called when the game finds the BIOS keyboard buffer empty (int 16h status): the browser delivers pending key
+  // events (which may fill it) and yields briefly so "press a key" loops do not spin hot.
+  idle?: () => void;
   // Game files by normalized DOS path.
   readonly files = new Map<string, Uint8Array>();
 
@@ -240,7 +243,9 @@ export function int10(m: Memory, r: Regs): void {
 
 export function int16(m: Memory, r: Regs): void {
   const ah = r.ax >> 8;
-  const keys = machine(m).keys;
+  const mc = machine(m);
+  const keys = mc.keys;
+  if ((ah === 0x01 || ah === 0x11) && !keys.length) mc.idle?.();
   if (ah === 0x01 || ah === 0x11) {
     if (keys.length) {
       r.ax = keys[0];

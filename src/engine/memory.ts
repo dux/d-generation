@@ -3,9 +3,9 @@
 // checked byte for byte against the original running in tools/emu.
 
 export class Memory {
-  readonly bytes = new Uint8Array(0x100000);
+  readonly bytes: Uint8Array<ArrayBufferLike>;
   // VGA DAC: 256 colors x 6-bit RGB, set through ports 3c8/3c9 (not addressable memory).
-  readonly dac = new Uint8Array(768);
+  readonly dac: Uint8Array<ArrayBufferLike>;
   // Stack pointer, an offset in DS (the game runs with SS = DS). Ports that pass the address of a local
   // variable to a callee allocate it on this stack: `const local = m.push(6); ...; m.pop(6);`.
   sp = 0xd9b2;
@@ -19,8 +19,16 @@ export class Memory {
     this.sp = (this.sp + ((size + 1) & ~1)) & 0xffff;
   }
 
-  // ds: data segment paragraph (DS:0 = ds * 16).
-  constructor(readonly ds: number) {}
+  // ds: data segment paragraph (DS:0 = ds * 16). bytes/dac may be views of SharedArrayBuffers so another thread
+  // can display the screen (A000) and palette while the game runs in a worker.
+  constructor(
+    readonly ds: number,
+    bytes: Uint8Array<ArrayBufferLike> = new Uint8Array(0x100000),
+    dac: Uint8Array<ArrayBufferLike> = new Uint8Array(768),
+  ) {
+    this.bytes = bytes;
+    this.dac = dac;
+  }
 
   private at(off: number): number {
     return this.ds * 16 + (off & 0xffff);

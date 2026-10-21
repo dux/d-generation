@@ -5,6 +5,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { bootGame } from "../src/engine/boot.ts";
 import { gameFrame } from "../src/engine/core/game.ts";
+import { Machine } from "../src/engine/dos/machine.ts";
 import "../src/engine/index.ts";
 import type { Memory } from "../src/engine/memory.ts";
 
@@ -55,7 +56,7 @@ function compare(m: Memory, name: string): string[] {
 }
 
 const frames = Number(process.argv[2] ?? 20);
-const m = bootGame(gameFiles());
+const m = bootGame(new Machine(gameFiles()));
 for (let k = 0; k <= frames; k++) {
   if (k > 0 && gameFrame(m)) {
     console.log(`frame ${k}: game quit`);

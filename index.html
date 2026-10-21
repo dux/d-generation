@@ -46,6 +46,13 @@
       main {
         padding: 14px;
       }
+      [hidden] {
+        display: none !important;
+      }
+      #game {
+        width: 960px;
+        height: 600px;
+      }
       canvas {
         image-rendering: pixelated;
         display: block;
@@ -67,6 +74,7 @@
     </header>
     <main>
       <canvas id="view"></canvas>
+      <canvas id="game" hidden></canvas>
       <div id="status"></div>
     </main>
     <script type="module" src="/src/main.ts"></script>

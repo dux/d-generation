@@ -2,7 +2,7 @@
 // startup and main()'s prologue, and leaves the game ready for its frame loop (core/game.ts gameFrame).
 import { gameInit } from "./core/game.ts";
 import { startArgs, startupCheck } from "./dos/files.ts";
-import { Machine, PSP, attachMachine, int21, regs } from "./dos/machine.ts";
+import { type Machine, PSP, attachMachine, int21, regs } from "./dos/machine.ts";
 import { Memory } from "./memory.ts";
 
 const LOAD = PSP + 0x10;
@@ -23,16 +23,17 @@ const STACK_SIZE = 0x2c16;
 const BSS_START = 0x2c36;
 const BSS_END = 0x99b2;
 
-// files: every game file by DOS path relative to the game folder, including "GAME.EXE".
-export function bootGame(files: Map<string, Uint8Array>): Memory {
-  const exe = files.get("GAME.EXE");
+// dos: the machine with every game file (including GAME.EXE) and the host's pacing hooks. memory/dac: optional
+// (shared) buffers for the 1 MB address space and the DAC.
+export function bootGame(dos: Machine, memory?: Uint8Array, dac?: Uint8Array): Memory {
+  const exe = dos.files.get("GAME.EXE");
   if (!exe) throw new Error("GAME.EXE missing");
   const view = new DataView(exe.buffer, exe.byteOffset, exe.byteLength);
   const word = (at: number) => view.getUint16(at, true);
   const size = (word(4) - 1) * 512 + word(2);
   const headerSize = word(8) * 16;
   const imageDs = word(0x0e);
-  const m = new Memory(LOAD + imageDs);
+  const m = new Memory(LOAD + imageDs, memory, dac);
   const image = exe.slice(headerSize, size);
   const imageView = new DataView(image.buffer);
   for (let i = 0; i < word(6); i++) {
@@ -56,7 +57,7 @@ export function bootGame(files: Map<string, Uint8Array>): Memory {
   for (let v = 0; v < 256; v++) m.bytes.set([0x00, 0xff, 0x00, 0xf0], v * 4);
   m.bytes[0x449] = 3;
 
-  attachMachine(m, new Machine(files));
+  attachMachine(m, dos);
   const [argc, argv] = cStartup(m);
   gameInit(m, argc, argv);
   return m;

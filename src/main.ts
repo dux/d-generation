@@ -3,12 +3,14 @@ import { withScheme, type Palette } from "./formats/palette.ts";
 import { deltaSetFor, SCENE_NUMBERS } from "./formats/scene.ts";
 import { DELTA_SET_NUMBERS, GameData, SCHEME_PALETTES, SHAPE_NAMES, type PaletteName } from "./game-data.ts";
 import { renderRoom } from "./render/room.ts";
+import { type GameHandle, startGame } from "./play/player.ts";
 import { Screen } from "./render/screen.ts";
 import { deltaSheet, shapeSheet, type SheetRect } from "./render/sheet.ts";
 
-type Mode = "rooms" | "sprites" | "deltas";
+type Mode = "play" | "rooms" | "sprites" | "deltas";
 
 const MODES: { mode: Mode; label: string; scale: number; items: string[] }[] = [
+  { mode: "play", label: "Play", scale: 3, items: [] },
   { mode: "rooms", label: "Rooms", scale: 3, items: SCENE_NUMBERS.map(String) },
   { mode: "sprites", label: "Sprites", scale: 3, items: SHAPE_NAMES },
   { mode: "deltas", label: "Delta sets", scale: 2, items: DELTA_SET_NUMBERS.map(String) },
@@ -36,6 +38,7 @@ const itemSelect = $<HTMLSelectElement>("item");
 const paletteSelect = $<HTMLSelectElement>("palette");
 const musicButton = $<HTMLButtonElement>("music");
 const canvas = $<HTMLCanvasElement>("view");
+const gameCanvas = $<HTMLCanvasElement>("game");
 const status = $<HTMLDivElement>("status");
 const ctx = canvas.getContext("2d")!;
 
@@ -100,9 +103,31 @@ async function render() {
   }
 }
 
+let game: GameHandle | null = null;
+
+// Play runs the ported game in a worker; the other modes are the asset viewer.
+function showPlay(play: boolean) {
+  gameCanvas.hidden = !play;
+  canvas.hidden = play;
+  itemSelect.hidden = play;
+  paletteSelect.hidden = play;
+  if (play && !game) {
+    location.hash = "play";
+    startGame(gameCanvas, (text) => (status.textContent = text)).then(
+      (handle) => (game = handle),
+      (err) => (status.textContent = String(err)),
+    );
+  } else if (!play && game) {
+    game.stop();
+    game = null;
+  }
+}
+
 function selectMode(next: Mode, item?: string) {
   mode = next;
   for (const button of tabs.children) button.setAttribute("aria-pressed", String((button as HTMLElement).dataset.mode === mode));
+  showPlay(mode === "play");
+  if (mode === "play") return;
   const info = modeInfo();
   fill(itemSelect, info.items.map((i) => ({ value: i, label: mode === "rooms" ? `Scene ${i}` : mode === "deltas" ? `DLTSET${i}` : i })), item ?? info.items[0]);
   const palettes = mode === "rooms" ? PALETTES : PALETTES.slice(1);
@@ -123,7 +148,7 @@ itemSelect.addEventListener("change", render);
 paletteSelect.addEventListener("change", render);
 
 document.addEventListener("keydown", (e) => {
-  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  if (mode === "play" || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
   const options = itemSelect.options;
   const next = itemSelect.selectedIndex + (e.key === "ArrowRight" ? 1 : -1);
   if (next < 0 || next >= options.length) return;
@@ -150,4 +175,4 @@ musicButton.addEventListener("click", async () => {
 });
 
 const [hashMode, hashItem] = location.hash.slice(1).split("/");
-selectMode(MODES.some((m) => m.mode === hashMode) ? (hashMode as Mode) : "rooms", hashItem);
+selectMode(MODES.some((m) => m.mode === hashMode) ? (hashMode as Mode) : "play", hashItem);

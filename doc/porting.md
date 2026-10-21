@@ -44,6 +44,33 @@ Register every exported port this way (it costs nothing and callers never have t
 
 * `tools/emu/dosemu.py`: DOS/VGA environment around unicorn; `Dos.call(off, *args)` calls a near function.
 * `tools/emu/snapshot.py [frames] [scene...]`: full memory in each room after N frames, `out/snapshots/`.
-* `tools/emu/trace.py`: per-function cases, `out/difftest/`.
+* `tools/emu/trace.py <seg:off> [n] [words] [near|far|int]`: per-function cases (memory, DAC, DOS machine state), `out/difftest/`.
 * `tools/emu/rekit.py`: disassembly with `seg:off` labels, callers, DS references, initial DS values.
-* `tools/difftest.ts`: replays cases against `tools/ports/*.ts`.
+* `tools/emu/callgraph.py`: static call graph, `out/callgraph.json`.
+* `tools/difftest.ts` (`bun run difftest`): replays cases against `tools/ports/*.ts`; cases with machine state go through `machineState` from `tools/ports/dos.ts`.
+* `tools/emu/lockstep.py [frames] [stride]` and `tools/lockstep.ts [frames]`: whole-game check, see below.
+
+Ignored in comparisons: the stack slack below SP, sprintf's cursor `DS:2d4a` (holds a stack address), and in lockstep also the timer handler's own stack and saved SS:SP (`DS:2740-27a1`, `14c8:010f-0112`).
+
+## The whole game
+
+`./src/engine/boot.ts` loads `GAME.EXE` like the emulator's DOS does (relocations, PSP, environment, interrupt vector stubs), runs the ported C startup and `main()`'s prologue, and `./src/engine/core/game.ts` `gameFrame()` runs one pass of the main loop.
+`./src/engine/index.ts` imports every ported module so pointer calls resolve.
+
+DOS, BIOS and hardware are `./src/engine/dos/` (`Machine`): files come from a preloaded map, interrupts go through the vector table in memory, ports 3c8/3c9 feed the DAC, `keyboardInterrupt(m, scancode)` raises int 9.
+There are no asynchronous interrupts.
+The game's wait loops (frame sync `0:2016`, delay `0:3b71`, menu pauses `0:ac71`, `0:acf1`, `0:b46a`) call `waitTick()` before every poll of their timer, which runs `Machine.pace` (the host's real-time wait) and then one timer interrupt.
+When the game finds the BIOS keyboard buffer empty, `Machine.idle` lets the host deliver key events.
+
+`tools/emu/lockstep.py` runs the original under exactly that timer rule and saves memory at every main-loop pass; `tools/lockstep.ts` boots the port and compares every frame.
+The original also reads a few stack bytes it never wrote; their values are fixed in both (`UNINITIALISED` in lockstep.py, e.g. `0:42bd` record byte 3).
+The demo runs identically for at least 8000 frames.
+
+In the browser (`./src/play/`) the game runs in a worker on SharedArrayBuffers: the page draws A000 with the DAC every animation frame and pushes scancodes into a ring the worker delivers at `pace`/`idle`.
+SharedArrayBuffer needs cross-origin isolation: `vite.config.ts` sends `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`; a production host must send them too.
+
+## Coverage
+
+628 functions are ported.
+388 are verified against recorded calls; 240 never run in the demo (saving, conversations, many object behaviours) and are checked only by reading.
+Covering them needs scripted input in lockstep runs (keys at given frames in both the emulator and the port).
