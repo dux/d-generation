@@ -42,6 +42,10 @@ const SCANCODES: Record<string, number> = {
   Delete: 0x53, NumpadDecimal: 0x53,
 };
 
+// F5 save / F9 restore, typed as the game's own Alt-S / Alt-O.
+const ALT = 0x38;
+const HOTKEYS: Record<string, number> = { F5: 0x1f, F9: 0x18 };
+
 export interface GameHandle {
   stop(): void;
 }
@@ -74,7 +78,7 @@ export async function startGame(canvas: HTMLCanvasElement, onStatus: (text: stri
   };
   const start: StartMessage = { files, memory, dac, control };
   worker.postMessage(start, files.map(([, data]) => data));
-  onStatus("running - Alt-S save, Alt-O restore, unlimited lives");
+  onStatus("running - F5 save, F9 restore, unlimited lives");
 
   const ctx = canvas.getContext("2d")!;
   canvas.width = WIDTH;
@@ -96,15 +100,24 @@ export async function startGame(canvas: HTMLCanvasElement, onStatus: (text: stri
   };
   frame = requestAnimationFrame(draw);
 
+  // All or nothing, so a full ring never leaves Alt held down.
+  const send = (...codes: number[]) => {
+    const written = Atomics.load(ctrl, KEYS_WRITTEN);
+    if (written - Atomics.load(ctrl, KEYS_READ) + codes.length > KEY_RING_SIZE) return;
+    codes.forEach((code, i) => (ctrl[KEY_RING + ((written + i) % KEY_RING_SIZE)] = code));
+    Atomics.store(ctrl, KEYS_WRITTEN, written + codes.length);
+  };
   const key = (release: boolean) => (e: KeyboardEvent) => {
     const code = SCANCODES[e.code];
     if (code === undefined || e.metaKey) return;
     e.preventDefault();
+    const hotkey = HOTKEYS[e.code];
+    if (hotkey) {
+      if (!release && !e.repeat) send(ALT, hotkey, hotkey | 0x80, ALT | 0x80);
+      return;
+    }
     // Auto-repeat arrives as repeated make codes, like a real keyboard's typematic repeat.
-    const written = Atomics.load(ctrl, KEYS_WRITTEN);
-    if (written - Atomics.load(ctrl, KEYS_READ) >= KEY_RING_SIZE) return;
-    ctrl[KEY_RING + (written % KEY_RING_SIZE)] = code | (release ? 0x80 : 0);
-    Atomics.store(ctrl, KEYS_WRITTEN, written + 1);
+    send(code | (release ? 0x80 : 0));
   };
   const down = key(false);
   const up = key(true);
