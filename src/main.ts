@@ -1,4 +1,4 @@
-import { Music } from "./audio/music.ts";
+import { Music, type Track } from "./audio/music.ts";
 import { withScheme, type Palette } from "./formats/palette.ts";
 import { deltaSetFor, SCENE_NUMBERS } from "./formats/scene.ts";
 import { DELTA_SET_NUMBERS, GameData, SCHEME_PALETTES, SHAPE_NAMES, type PaletteName } from "./game-data.ts";
@@ -31,6 +31,9 @@ const data = new GameData(async (path) => {
   return new Uint8Array(await res.arrayBuffer());
 });
 const music = new Music();
+const MUSIC_SETTING = "d-generation-music"; // outside the "d-generation:" saved-file prefix
+let gameMusic = localStorage.getItem(MUSIC_SETTING) !== "off";
+let gameTrack: Track | null = null; // latest cue from the game
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const tabs = $<HTMLDivElement>("tabs");
@@ -105,6 +108,13 @@ async function render() {
 
 let game: GameHandle | null = null;
 
+// Play mode: the game's cued track, unless muted.
+function applyGameMusic() {
+  musicButton.textContent = `Music: ${gameMusic ? "on" : "off"}`;
+  if (!gameMusic || !gameTrack) music.stop();
+  else if (music.track !== gameTrack) void music.play(gameTrack);
+}
+
 // Play runs the ported game in a worker; the other modes are the asset viewer.
 function showPlay(play: boolean) {
   gameCanvas.hidden = !play;
@@ -113,13 +123,24 @@ function showPlay(play: boolean) {
   paletteSelect.hidden = play;
   if (play && !game) {
     location.hash = "play";
-    startGame(gameCanvas, (text) => (status.textContent = text)).then(
+    startGame(
+      gameCanvas,
+      (text) => (status.textContent = text),
+      (track) => {
+        gameTrack = track;
+        applyGameMusic();
+      },
+    ).then(
       (handle) => (game = handle),
       (err) => (status.textContent = String(err)),
     );
+    applyGameMusic();
   } else if (!play && game) {
     game.stop();
     game = null;
+    gameTrack = null;
+    music.stop();
+    musicButton.textContent = "Music: off";
   }
 }
 
@@ -148,7 +169,11 @@ itemSelect.addEventListener("change", render);
 paletteSelect.addEventListener("change", render);
 
 document.addEventListener("keydown", (e) => {
-  if (mode === "play" || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
+  if (mode === "play") {
+    music.resume(); // the first key press unlocks audio for the game's music
+    return;
+  }
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
   const options = itemSelect.options;
   const next = itemSelect.selectedIndex + (e.key === "ArrowRight" ? 1 : -1);
   if (next < 0 || next >= options.length) return;
@@ -168,6 +193,13 @@ canvas.addEventListener("mousemove", (e) => {
 
 const TRACKS = [null, "dgen", "dgen2"] as const;
 musicButton.addEventListener("click", async () => {
+  if (mode === "play") {
+    gameMusic = !gameMusic;
+    localStorage.setItem(MUSIC_SETTING, gameMusic ? "on" : "off");
+    applyGameMusic();
+    music.resume();
+    return;
+  }
   const next = TRACKS[(TRACKS.indexOf(music.track) + 1) % TRACKS.length];
   if (next) await music.play(next);
   else music.stop();

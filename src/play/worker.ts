@@ -1,10 +1,13 @@
 // Runs the ported game: boot, then the frame loop, in real time. Waits are real (Atomics.wait), so the original's
 // blocking loops (title delays, menus) run unchanged.
 import "../engine/index.ts";
+import type { Track } from "../audio/music.ts";
 import { bootGame } from "../engine/boot.ts";
 import { PLAYER_STATE, gameFrame } from "../engine/core/game.ts";
 import { DosExit, Machine, keyboardInterrupt } from "../engine/dos/machine.ts";
+import { DEMO_ENDED } from "../engine/geometry/math.ts";
 import type { Memory } from "../engine/memory.ts";
+import { PLAYBACK } from "../engine/misc/input.ts";
 import { KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE, SLEEP, type StartMessage, type WorkerMessage } from "./shared.ts";
 
 const PIT_HZ = 1193182;
@@ -44,11 +47,23 @@ self.onmessage = (event: MessageEvent<StartMessage>) => {
   };
   dos.saved = (path, data) => post({ type: "saved", path, data: data.slice().buffer });
 
+  // Amiga music by game phase (the DOS game has none): title and demo, then the game itself.
+  let track: Track | null = null;
+  const cue = (next: Track) => {
+    if (next === track) return;
+    track = next;
+    post({ type: "music", track });
+  };
+
   try {
+    cue("dgen");
     m = bootGame(dos, new Uint8Array(memory), new Uint8Array(dac));
     // Unlimited lives: top the counter back up after every frame, so a lost life never reaches the checkpoint
     // restart. The ported game code itself stays as in GAME.EXE.
-    while (!gameFrame(m)) if (m.u8(PLAYER_STATE) < LIVES) m.set8(PLAYER_STATE, LIVES);
+    while (!gameFrame(m)) {
+      if (m.u8(PLAYER_STATE) < LIVES) m.set8(PLAYER_STATE, LIVES);
+      cue(m.u8(PLAYBACK) || m.u8(DEMO_ENDED) ? "dgen" : "dgen2");
+    }
     post({ type: "exit", code: 0, output: dos.output });
   } catch (err) {
     if (err instanceof DosExit) post({ type: "exit", code: err.code, output: dos.output });

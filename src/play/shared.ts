@@ -1,3 +1,5 @@
+import type { Track } from "../audio/music.ts";
+
 // Shared state between the page and the game worker (SharedArrayBuffers, so the page can draw while the game's
 // blocking loops run in the worker).
 
@@ -19,4 +21,5 @@ export interface StartMessage {
 export type WorkerMessage =
   | { type: "exit"; code: number; output: string }
   | { type: "error"; message: string }
-  | { type: "saved"; path: string; data: ArrayBuffer }; // a file the game wrote (DOS path), for the page to keep
+  | { type: "saved"; path: string; data: ArrayBuffer } // a file the game wrote (DOS path), for the page to keep
+  | { type: "music"; track: Track }; // track the game phase calls for

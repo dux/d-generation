@@ -1,6 +1,7 @@
 // Page side of the game: loads the files, starts the worker, draws the VGA screen (A000 + DAC) every animation
 // frame and turns keyboard events into PC scancodes.
 import gameFiles from "virtual:game-files";
+import type { Track } from "../audio/music.ts";
 import { CONTROL_INTS, KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE, type StartMessage, type WorkerMessage } from "./shared.ts";
 
 const SCREEN = 0xa0000;
@@ -45,7 +46,7 @@ export interface GameHandle {
   stop(): void;
 }
 
-export async function startGame(canvas: HTMLCanvasElement, onStatus: (text: string) => void): Promise<GameHandle> {
+export async function startGame(canvas: HTMLCanvasElement, onStatus: (text: string) => void, onTrack: (track: Track) => void): Promise<GameHandle> {
   if (!crossOriginIsolated) throw new Error("the page needs cross-origin isolation (COOP/COEP headers) for SharedArrayBuffer");
   onStatus("loading game files");
   const files = await Promise.all(
@@ -67,6 +68,7 @@ export async function startGame(canvas: HTMLCanvasElement, onStatus: (text: stri
   const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
   worker.onmessage = ({ data }: MessageEvent<WorkerMessage>) => {
     if (data.type === "saved") keepFile(data.path, data.data);
+    else if (data.type === "music") onTrack(data.track);
     else if (data.type === "exit") onStatus(`game exited (${data.code})${data.output ? `: ${data.output}` : ""}`);
     else onStatus(`game crashed: ${data.message}`);
   };

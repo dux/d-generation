@@ -8,6 +8,7 @@ import workletUrl from "chiptune3/chiptune3.worklet.js?worker&url";
 export type Track = "dgen" | "dgen2";
 
 export class Music {
+  #context: AudioContext | null = null;
   #node: Promise<AudioWorkletNode> | null = null;
   #track: Track | null = null;
 
@@ -17,8 +18,11 @@ export class Music {
 
   async play(track: Track): Promise<void> {
     this.#track = track;
-    // The AudioContext has to be created synchronously inside the user gesture.
-    this.#node ??= createNode();
+    // Created synchronously, so a click handler's gesture unlocks it; game cues create it before any gesture and resume() unlocks it.
+    if (!this.#node) {
+      this.#context = new AudioContext();
+      this.#node = createNode(this.#context);
+    }
     const [node, song] = await Promise.all([this.#node, fetchSong(track)]);
     if (this.#track !== track) return; // superseded by a later play() or stop()
     // The worklet replaces any current song and loops forever (repeatCount -1 by default).
@@ -29,10 +33,14 @@ export class Music {
     this.#track = null;
     this.#node?.then((node) => node.port.postMessage({ cmd: "stop" }));
   }
+
+  // Unlocks a context created before the page had a user gesture; call from a key or click handler.
+  resume(): void {
+    void this.#context?.resume();
+  }
 }
 
-async function createNode(): Promise<AudioWorkletNode> {
-  const context = new AudioContext();
+async function createNode(context: AudioContext): Promise<AudioWorkletNode> {
   await context.audioWorklet.addModule(workletUrl);
   const node = new AudioWorkletNode(context, "libopenmpt-processor", {
     numberOfInputs: 0,

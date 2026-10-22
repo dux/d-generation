@@ -70,6 +70,8 @@ In the browser (`./src/play/`) the game runs in a worker on SharedArrayBuffers: 
 SharedArrayBuffer needs cross-origin isolation: `vite.config.ts` sends `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`; a production host must send them too.
 Files the game writes (the Alt-S save `DATA\SAVE.DAT`, restored with Alt-O) reach the page through `Machine.saved` and are kept in localStorage as `d-generation:<DOS path>`; at start they replace the shipped file of the same name.
 The browser build has unlimited lives: the worker tops the lives counter (`DS:3362`) back up to 5 after every frame, so the ported game code stays as in GAME.EXE.
+The DOS game has no music, so the browser plays the Amiga AGA tracks by game phase: the worker cues `dgen.mod` while the demo plays or the title is due (`DS:1987` or `DS:198c` set after a frame) and `dgen2.mod` otherwise.
+Audio starts with the first key press; in Play mode the header Music button mutes it, remembered in localStorage as `d-generation-music`.
 
 ## Coverage
 
