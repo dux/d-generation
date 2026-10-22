@@ -1,0 +1,4 @@
+[{"frame":5,"key":64,"down":true},{"frame":7,"key":64,"down":false},
+{"frame":8,"poke":[{"g":"6813","width":1,"value":1},{"g":"6915","width":1,"value":1},{"g":"6a17","width":1,"value":1}]},
+{"frame":20,"poke":[{"g":"8a24","width":1,"value":121},{"g":"6602","width":2,"value":1},{"g":"85d9","width":1,"value":7},{"g":"240","width":1,"value":1},{"g":"8a22","width":1,"value":35},{"g":"8a23","width":1,"value":3}]},
+{"frame":21,"joy":268435462},{"frame":60,"joy":268435460},{"frame":82,"joy":268435458},{"frame":110,"joy":268435456}]

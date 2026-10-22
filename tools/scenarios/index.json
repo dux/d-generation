@@ -1,0 +1,551 @@
+{
+ "audit-cgen-cannon": {
+  "frames": 320,
+  "from": 20
+ },
+ "audit-cgen-dgengre": {
+  "frames": 60,
+  "from": 20
+ },
+ "audit-cgen-dgenwall": {
+  "frames": 120,
+  "from": 20
+ },
+ "audit-cgen-frozen": {
+  "frames": 60,
+  "from": 22
+ },
+ "audit-cgen-hits": {
+  "frames": 120,
+  "from": 20
+ },
+ "audit-cgen-pan": {
+  "frames": 160,
+  "from": 20
+ },
+ "audit-cgen-room60": {
+  "frames": 90,
+  "from": 20
+ },
+ "audit-cgen-shape5": {
+  "frames": 80,
+  "from": 20
+ },
+ "audit-cgen-tel": {
+  "frames": 100,
+  "from": 20
+ },
+ "audit-door-bomb": {
+  "frames": 480,
+  "from": 20
+ },
+ "audit-door-many": {
+  "frames": 60,
+  "from": 20
+ },
+ "audit-hed-bomb": {
+  "frames": 180,
+  "from": 20
+ },
+ "audit-laser-exit": {
+  "frames": 60,
+  "from": 20
+ },
+ "audit-laser-noturn": {
+  "frames": 60,
+  "from": 20
+ },
+ "audit-laser-tel": {
+  "frames": 60,
+  "from": 20
+ },
+ "audit-lift-bomb": {
+  "frames": 230,
+  "from": 20
+ },
+ "audit-lift-dest1": {
+  "frames": 250,
+  "from": 20
+ },
+ "audit-lift-save": {
+  "frames": 80,
+  "from": 20
+ },
+ "audit-marker-sur": {
+  "frames": 100,
+  "from": 22
+ },
+ "audit-orb-bump": {
+  "frames": 150,
+  "from": 20
+ },
+ "audit-orb-capsur": {
+  "frames": 150,
+  "from": 21
+ },
+ "audit-orb-cgen": {
+  "frames": 150,
+  "from": 21
+ },
+ "audit-orb-noaim": {
+  "frames": 150,
+  "from": 21
+ },
+ "audit-orb-pan": {
+  "frames": 600,
+  "from": 20
+ },
+ "audit-orb-release": {
+  "frames": 200,
+  "from": 20
+ },
+ "audit-orb-sur": {
+  "frames": 400,
+  "from": 21
+ },
+ "audit-player-cub-death": {
+  "frames": 150,
+  "from": 110
+ },
+ "audit-player-dgen-shield": {
+  "frames": 200,
+  "from": 20
+ },
+ "audit-player-dgen-touch": {
+  "frames": 200,
+  "from": 20
+ },
+ "audit-player-exit-east": {
+  "frames": 90,
+  "from": 110
+ },
+ "audit-player-exit-north": {
+  "frames": 100,
+  "from": 110
+ },
+ "audit-player-exit-south": {
+  "frames": 90,
+  "from": 110
+ },
+ "audit-player-exit-west": {
+  "frames": 90,
+  "from": 110
+ },
+ "audit-player-grab-3": {
+  "frames": 300,
+  "from": 110
+ },
+ "audit-player-jetpack": {
+  "frames": 150,
+  "from": 110
+ },
+ "audit-player-keyboard": {
+  "frames": 100,
+  "from": 110
+ },
+ "audit-player-laser-blocked": {
+  "frames": 60,
+  "from": 110
+ },
+ "audit-player-laser-edge": {
+  "frames": 60,
+  "from": 110
+ },
+ "audit-player-laser-self-e": {
+  "frames": 120,
+  "from": 110
+ },
+ "audit-player-laser-self-n": {
+  "frames": 120,
+  "from": 110
+ },
+ "audit-player-nojoy-keyboard": {
+  "frames": 60,
+  "from": 110
+ },
+ "audit-player-override-death": {
+  "frames": 110,
+  "from": 110
+ },
+ "audit-player-pickup-1": {
+  "frames": 100,
+  "from": 110
+ },
+ "audit-player-pickup-2": {
+  "frames": 100,
+  "from": 110
+ },
+ "audit-player-pickup-3": {
+  "frames": 100,
+  "from": 110
+ },
+ "audit-player-pickup-4": {
+  "frames": 100,
+  "from": 110
+ },
+ "audit-player-resilience": {
+  "frames": 600,
+  "from": 20
+ },
+ "audit-player-shield-bar-full": {
+  "frames": 690,
+  "from": 110
+ },
+ "audit-player-shield-grenade": {
+  "frames": 250,
+  "from": 110
+ },
+ "audit-player-shield-orb": {
+  "frames": 400,
+  "from": 110
+ },
+ "audit-player-shield-tub": {
+  "frames": 400,
+  "from": 110
+ },
+ "audit-player-spawn-bar": {
+  "frames": 120,
+  "from": 110
+ },
+ "audit-player-spawn-pan": {
+  "frames": 120,
+  "from": 110
+ },
+ "audit-player-use-nolaser": {
+  "frames": 60,
+  "from": 110
+ },
+ "audit-switch-grenade": {
+  "frames": 50,
+  "from": 20
+ },
+ "audit-switch-key": {
+  "frames": 100,
+  "from": 20
+ },
+ "audit-switch-nocannon": {
+  "frames": 100,
+  "from": 20
+ },
+ "audit-switch-oneshot": {
+  "frames": 80,
+  "from": 20
+ },
+ "audit-switch-save": {
+  "frames": 50,
+  "from": 20
+ },
+ "audit-trk-fast108": {
+  "frames": 100,
+  "from": 20
+ },
+ "audit-trk-fast54": {
+  "frames": 100,
+  "from": 20
+ },
+ "audit-trk-fast86": {
+  "frames": 100,
+  "from": 20
+ },
+ "audit-trk-hit": {
+  "frames": 120,
+  "from": 20
+ },
+ "audit-trk-laser": {
+  "frames": 120,
+  "from": 20
+ },
+ "audit-trk-save": {
+  "frames": 200,
+  "from": 20
+ },
+ "audit-trk-sur": {
+  "frames": 120,
+  "from": 21
+ },
+ "audit-tub-jump": {
+  "frames": 400,
+  "from": 20
+ },
+ "audit-tub-noaim": {
+  "frames": 120,
+  "from": 20
+ },
+ "audit-tub-pan": {
+  "frames": 400,
+  "from": 20
+ },
+ "audit-tub-shield": {
+  "frames": 150,
+  "from": 20
+ },
+ "audit-tub-wake": {
+  "frames": 150,
+  "from": 20
+ },
+ "audit-ven-save": {
+  "frames": 200,
+  "from": 20
+ },
+ "hazards-bar": {
+  "frames": 213,
+  "from": 110
+ },
+ "hazards-barsave": {
+  "frames": 290,
+  "from": 110
+ },
+ "hazards-pan": {
+  "frames": 340,
+  "from": 110
+ },
+ "hazards-rooms": {
+  "frames": 690,
+  "from": 110
+ },
+ "hazards-squ": {
+  "frames": 790,
+  "from": 110
+ },
+ "talk2-converse": {
+  "frames": 60,
+  "from": 34
+ },
+ "talk2-hostile": {
+  "frames": 30,
+  "from": 34
+ },
+ "talk2-inventory-barrier": {
+  "frames": 80,
+  "from": 34
+ },
+ "talk2-inventory-bomb": {
+  "frames": 260,
+  "from": 34
+ },
+ "talk2-inventory-cancel": {
+  "frames": 40,
+  "from": 34
+ },
+ "talk2-inventory-empty": {
+  "frames": 40,
+  "from": 34
+ },
+ "talk2-inventory-freezer": {
+  "frames": 80,
+  "from": 34
+ },
+ "talk2-inventory-package": {
+  "frames": 40,
+  "from": 34
+ },
+ "talk2-inventory-shield": {
+  "frames": 80,
+  "from": 34
+ },
+ "talk2-nag": {
+  "frames": 30,
+  "from": 34
+ },
+ "talk2-protected": {
+  "frames": 30,
+  "from": 34
+ },
+ "talk2-terminal-credentials-empty-code": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-credentials-empty-name": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-credentials-keyboard": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-credentials-pixel": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-credentials-right": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-credentials-wrong-code": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-credentials-wrong-name": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-emails": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-entrance-death": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-entrance-empty": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-entrance-famine": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-entrance-pestilence": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-entrance-pixel": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-entrance-right": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-entrance-wrong": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-escape": {
+  "frames": 40,
+  "from": 24
+ },
+ "talk2-terminal-escape-spent": {
+  "frames": 12,
+  "from": 24
+ },
+ "talk2-terminal-picture-18": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-picture-29": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-picture-36": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-picture-44": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-picture-77": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-regeneration": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-terminal-regeneration-pixel": {
+  "frames": 35,
+  "from": 24
+ },
+ "talk2-unsafe": {
+  "frames": 30,
+  "from": 24
+ },
+ "uiflow-lives": {
+  "frames": 150,
+  "from": 100
+ },
+ "uiflow-pause": {
+  "frames": 60,
+  "from": 100
+ },
+ "uiflow-save": {
+  "frames": 150,
+  "from": 100
+ },
+ "uiflow3-bombed-ending": {
+  "frames": 300,
+  "from": 110
+ },
+ "uiflow3-lift": {
+  "frames": 300,
+  "from": 110
+ },
+ "uiflow3-newgame": {
+  "frames": 600
+ },
+ "uiflow3-pad": {
+  "frames": 120
+ },
+ "uiflow3-warp": {
+  "frames": 60
+ },
+ "weapons-clear": {
+  "frames": 80,
+  "from": 20
+ },
+ "weapons-elc": {
+  "frames": 290,
+  "from": 110
+ },
+ "weapons-eye": {
+  "frames": 230,
+  "from": 20
+ },
+ "weapons-kind1": {
+  "frames": 150,
+  "from": 20
+ },
+ "weapons-laser": {
+  "frames": 140,
+  "from": 20
+ },
+ "special-anm-cannon": {
+  "frames": 280,
+  "from": 20
+ },
+ "special-anm-drop": {
+  "frames": 94,
+  "from": 20
+ },
+ "special-derrida": {
+  "frames": 380,
+  "from": 20
+ },
+ "special-dgen": {
+  "frames": 300,
+  "from": 20
+ },
+ "special-sli": {
+  "frames": 300,
+  "from": 0
+ },
+ "special-tel": {
+  "frames": 191,
+  "from": 20
+ },
+ "special-tel-restore": {
+  "frames": 380,
+  "from": 20
+ },
+ "weapons-orb": {
+  "frames": 100,
+  "from": 20
+ },
+ "weapons-path": {
+  "frames": 150,
+  "from": 20
+ },
+ "weapons-pickup": {
+  "frames": 120,
+  "from": 20
+ },
+ "weapons-save": {
+  "frames": 100,
+  "from": 20
+ },
+ "weapons-scene1": {
+  "frames": 300,
+  "from": 0
+ }
+}

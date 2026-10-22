@@ -49,9 +49,17 @@
       [hidden] {
         display: none !important;
       }
-      #game {
-        width: 1440px;
-        height: 900px;
+      /* Play: the page fills the window and the game shrinks to fit it, so the status line stays visible. */
+      body.play {
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+      }
+      body.play main {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
       }
       canvas {
         image-rendering: pixelated;
@@ -62,6 +70,21 @@
         margin-top: 8px;
         color: #8a8a9a;
         min-height: 1.4em;
+      }
+      /* Play: the canvas is scaled by whole device pixels to fit this box (./src/game/host/host.ts). */
+      #aga-box {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+      }
+      #stopped {
+        margin-top: 8px;
+        padding: 8px 12px;
+        border: 1px solid #b04a4a;
+        border-radius: 4px;
+        background: #3a1414;
+        color: #ffb0b0;
+        font-weight: bold;
       }
     </style>
   </head>
@@ -74,7 +97,8 @@
     </header>
     <main>
       <canvas id="view"></canvas>
-      <canvas id="game" hidden></canvas>
+      <div id="aga-box" hidden><canvas id="aga"></canvas></div>
+      <div id="stopped" role="alert" hidden></div>
       <div id="status"></div>
     </main>
     <script type="module" src="/src/main.ts"></script>

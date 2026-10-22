@@ -1,0 +1,9 @@
+[
+  {"frame":5,"key":64,"down":true},
+  {"frame":7,"key":64,"down":false},
+  {"frame":100,"joy":268435465},
+  {"frame":125,"joy":268435457},
+  {"frame":200,"joy":268435456},
+  {"frame":220,"joy":268435462},
+  {"frame":260,"joy":268435456}
+]

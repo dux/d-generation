@@ -1,0 +1,25 @@
+import type { FieldLayout } from "./types.ts";
+
+// h0:8428..h0:8528, h0:119d6 and the SUR profile binding h0:6de2 on the shared SUR layout.
+export const fields: readonly FieldLayout[] = [
+  { name: "derridaPiece", offset: 0x9a, width: 1 },
+  { name: "lastPlayerX", offset: 0x9e, width: 1 },
+  { name: "lastPlayerY", offset: 0x9f, width: 1 },
+  { name: "surHunting", offset: 0xa1, width: 1 },
+  { name: "derridaTwitchTime", offset: 0xa6, width: 2, signed: true },
+  { name: "surTargetId", offset: 0xa8, width: 1 },
+  { name: "derridaTwitchAnimationTime", offset: 0xac, width: 2 },
+  { name: "derridaTwitching", offset: 0xae, width: 1 },
+  { name: "derridaSpoke", offset: 0xb0, width: 1 },
+  { name: "surSitting", offset: 0xb2, width: 1 },
+  { name: "surStanding", offset: 0xb3, width: 1 },
+  { name: "surHealth", offset: 0xb8, width: 1 },
+  { name: "surCanWander", offset: 0xb9, width: 1 },
+  { name: "surReaction", offset: 0xba, width: 1 },
+  { name: "surBaseAnimation", offset: 0xbd, width: 1 },
+  { name: "surProfile", offset: 0xbe, width: 4, kind: "profile-index" },
+  { name: "surGrabType", offset: 0xc5, width: 1 },
+  { name: "surProtected", offset: 0xcb, width: 1 },
+  { name: "surRecordState", offset: 0xce, width: 1 },
+  { name: "surProfileFlags", offset: 0xcf, width: 1 },
+];

@@ -6,10 +6,13 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "check": "tsc --noEmit",
-    "extract": "bun tools/extract.ts",
-    "truth:rooms": "uv run -q --with unicorn tools/emu/room_truth.py",
-    "verify:rooms": "bun tools/verify-rooms.ts",
-    "difftest": "bun tools/difftest.ts"
+    "extract:aga": "bun tools/extract-aga.ts",
+    "extract:levels": "bun tools/extract-levels.ts",
+    "lockstep": "bun tools/lockstep-aga.ts",
+    "scenarios": "bun tools/scenarios.ts",
+    "truth:aga-rooms": "uv run -q --with unicorn --with capstone python tools/m68k/room_truth.py",
+    "verify:aga-rooms": "bun tools/verify-aga-rooms.ts",
+    "verify:aga-frames": "bun tools/verify-aga-frames.ts"
   },
   "devDependencies": {
     "@types/bun": "^1.4.3",
@@ -17,6 +20,7 @@
     "vite": "^8.3.5"
   },
   "dependencies": {
-    "chiptune3": "^0.8.9"
+    "chiptune3": "^0.8.9",
+    "json5": "^2.2.3"
   }
 }

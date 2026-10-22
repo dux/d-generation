@@ -1,0 +1,67 @@
+[
+  {
+    "frame": 5,
+    "key": 64,
+    "down": true
+  },
+  {
+    "frame": 7,
+    "key": 64,
+    "down": false
+  },
+  {
+    "frame": 20,
+    "poke": [
+      {
+        "g": "8a24",
+        "width": 1,
+        "value": 7
+      },
+      {
+        "g": "6602",
+        "width": 2,
+        "value": 1
+      },
+      {
+        "g": "8a22",
+        "width": 1,
+        "value": 2
+      },
+      {
+        "g": "8a23",
+        "width": 1,
+        "value": 5
+      }
+    ]
+  },
+  {
+    "tick": 4532,
+    "key": 22,
+    "down": true
+  },
+  {
+    "tick": 4535,
+    "key": 22,
+    "down": false
+  },
+  {
+    "tick": 4539,
+    "key": 68,
+    "down": true
+  },
+  {
+    "tick": 4542,
+    "key": 68,
+    "down": false
+  },
+  {
+    "tick": 4562,
+    "key": 68,
+    "down": true
+  },
+  {
+    "tick": 4565,
+    "key": 68,
+    "down": false
+  }
+]

@@ -1,0 +1,4 @@
+[{"frame":100,"poke":[{"g":"4d9","width":1,"value":0}]},
+ {"frame":110,"key":100,"down":true},{"frame":110,"key":33,"down":true},{"frame":111,"key":33,"down":false},{"frame":112,"key":100,"down":false},
+ {"frame":120,"key":99,"down":true},{"frame":120,"key":32,"down":true},{"frame":121,"key":32,"down":false},{"frame":122,"key":99,"down":false},
+ {"frame":140,"key":100,"down":true},{"frame":140,"key":19,"down":true},{"frame":141,"key":19,"down":false},{"frame":142,"key":100,"down":false}]

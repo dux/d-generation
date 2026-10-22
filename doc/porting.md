@@ -1,80 +1,71 @@
-# Porting GAME.EXE to TypeScript
+# Native TypeScript port of the AGA release
 
-The game logic is ported function by function from the DOS executable.
-Every ported function is checked against the original running in the emulator, on real calls recorded during play.
+The game is D/Generation V1.0 for the Amiga AGA (1993), ported to plain TypeScript: levels come from `./levels/floorNN.json5`, graphics and sound are decoded at runtime from the original files in `./amiga/aga/`, and the game logic is typed state and functions, not an emulated machine.
+Every ported function was checked against the original executable running in a 68000 emulator.
 
-## Memory model
+## Sources of truth
 
-`./src/engine/memory.ts` is a flat 1 MB real-mode address space with the data segment at the same paragraph as in the emulator.
-Ported functions read and write the same DS offsets, object structs, far buffers and shape banks as the original, so their effects can be compared byte for byte.
-`m.u8/s8/u16/s16(off)` and `m.set8/set16(off, v)` work on DS offsets; far data goes through `m.bytes[seg * 16 + off]`.
-Keep 16-bit semantics exact: wrap with `& 0xffff`, truncate bytes with `& 0xff`, sign-extend with `s8`/`s16` where the original uses `cbw`/`cwde`/signed compares.
+* Behaviour: the executable `./amiga/aga/dgen`.
+  `./tools/m68k/hunk.py` loads it (hunk k at `0x100000 + k*0x40000`, labels `h<k>:<offset>`); h0 is the C game code, h10 hand-written blitter, decompressor and sound code, h11 the merged data and BSS.
+  The C code reaches its globals through `A4 = h11 + 0x8000`, written `g:<h11 offset>`.
+  `./tools/m68k/rekit.py` disassembles it: `cd tools/m68k && uv run --with capstone python -i rekit.py`, then `fn('h0:4cbc')`, `L(a, b)`, `callers()`, `callees()`, `refs(0x8a24)`, `strs()`.
+* Runtime truth: `./tools/m68k/amigaemu.py` runs the original under unicorn with stubbed AmigaOS libraries, an emulated blitter and a deterministic vblank/CIA tick model; `./tools/m68k/snapshot.py` captures its state at main-loop passes.
+* Levels: `./levels/floorNN.json5` through `./src/formats/level.ts` (schema in `./levels/README.md`).
+* Formats: `./doc/formats.md`.
 
-Only the VGA path is ported.
-The game checks display flags (`DS:2e5c` VGA, `DS:2e5e` EGA, `DS:2f08`, `DS:2f0a`); in VGA mode `DS:2e5c` is 1 and the others are 0, so EGA/CGA/Tandy branches and the driver segments `1504`, `16a4` and `17bf` are dropped.
+## Layout
 
-## Code layout
+* `./src/game/core/`: game state, boot and main loop (`Game.boot()`, `Game.frame()`), input, floors and rooms, the object system (spawn, update, message, post, draw, save dispatch over the class table `g:426`), collisions, movement, timers, random, messages, palette effects.
+* `./src/game/actors/<name>.ts`: one module per object class; `./src/game/actors/index.ts` registers them.
+* `./src/game/render/`: room drawing, object drawing with the original's ordering and wall occlusion, `renderGame` and `renderPalette`.
+* `./src/game/ui/`: boot, title, intro and attract, keys and pause, save and config, endings, the CD32 pad menu; `ui/talk/` conversations and inventory, `ui/terminal/` terminals and the on-screen keyboard.
+* `./src/game/host/`: the browser host (Worker, keyboard and gamepad, WebAudio sound, saves).
+* `./src/main.ts` and `./index.html`: the page (Play, and the room, sprite and delta viewer).
 
-* `./src/engine/<subsystem>.ts` for shared code (`random.ts`, runtime, geometry, rendering, scene, player, ...).
-* `./src/engine/objects/<class>.ts` for one object class (class number = shape set id, see `doc/formats.md`).
-* Each ported function is exported and starts with a comment giving its original address and signature, e.g. `// fff:1176 random(range): ...`.
-* Name functions and DS globals by what they do once that is clear; until then use the address (`fn_0_4bb0`) or the offset with a short note.
-* Constants for DS globals live at the top of the module that owns them; import them from there instead of repeating the number.
+## Rules for ported code
 
-Calling convention: a port takes `(m: Memory, ...args)` with the original stack arguments as words, and returns the value the original leaves in AX (or DX:AX as one 32-bit number).
-Byte arguments arrive as words; mask them like the original does.
+* Every ported function starts with a comment naming its AGA address and, when the DOS prerelease (`./dgener/GAME.EXE`) has the same routine, its DOS address: `// h0:4cbc (DOS 0:51ee) plyUpdate(): ...`.
+* State is named fields on typed objects: the base `Actor` holds the fields every class shares, class fields live in the class module (`interface DoorActor extends Actor`).
+  Level data is never changed at runtime; rooms build their own runtime cell grid.
+* Keep the original integer semantics where they are observable: widths and signedness of counters and positions (8.8 position words, byte timers), wrap-around, truncating division, the order of random calls.
+  `./src/game/core/int.ts` has the helpers (`s8`, `u8`, `s16`, `u16`, `s32`).
+* The game is deterministic: logic advances from state and input only; rendering and audio read state or drain `Game.events` and never feed back.
+* Code paths that are not ported fail loudly (`throw new Error("... not ported")`); there are no placeholders.
 
-Code pointers: the original calls functions through pointers stored in memory (class descriptor slots at `DS:191d`, qsort comparators, for-each callbacks, timer hooks).
-Every port that can be reached that way registers itself with `register("0:4a69", fn)` from `./src/engine/dispatch.ts` at the bottom of its module, and callers use `callNear(m, offset, ...args)` / `call(m, label, ...args)`.
-Register every exported port this way (it costs nothing and callers never have to know which ones are reached through pointers).
+## Verification
 
-## Workflow for one function
+All of these run against fresh captures of the original.
 
-1. Read it: `cd tools/emu && uv run --with capstone python -i rekit.py`, then `print(fn('0:4a69'))`, `callers('0:4a69')`, `refs(0x337e)`.
-   `bottom_up` and `functions` in `out/callgraph.json` (from `uv run --with capstone python callgraph.py`) list callees and a bottom-up order.
-2. Port every callee first (bottom up). A callee owned by another module is imported from that module.
-3. Record cases: `uv run --with unicorn trace.py <seg:off> [max cases] [stack words] [far]` (from `tools/emu`).
-   The game plays its demo and is redirected through every room; real calls are saved to `out/difftest/`.
-   Functions that the demo never reaches need a scenario first; say so instead of guessing.
-4. Register the port in `./tools/ports/<module>.ts` (`export const ports = { "fff:1176": { fn, returns: "ax" } }`).
-5. `bun run difftest <seg:off>` must report every case passing.
-   It compares every byte of memory (except the stack slack below SP) and the return value.
+* `bun run lockstep <frames> [--from N] [--events file]` (`./tools/lockstep-aga.ts`) steps the original and the native game with the same input and reports the first frame, global or object field that differs.
+  Without `--from` the native game boots on its own; with it, `./tools/lockstep/import.ts` builds the native state from the capture at that boundary.
+  `./tools/lockstep/layout/` maps native field names to AGA globals and struct offsets.
+* `bun run scenarios [filter]` runs every scenario in `./tools/scenarios/` (event file plus frame window in `index.json`).
+  Event files hold raw key and joystick events by frame or by tick, and harness-only `poke` lists for setup (`{"frame": 20, "poke": [{"g": "8a24", "width": 1, "value": 62}, {"g": "6602", "width": 2, "value": 1}]}` warps to scene 63); a run with pokes must import a boundary at or after the last poke.
+* `bun run verify:aga-rooms` compares every room with the original's drawing; `bun run verify:aga-frames` compares whole frames of the attract demo with the original display.
+* `bun tools/verify-talk-frames.ts`, `bun tools/verify-ui-frames.ts`, `bun tools/verify-ui-probes.ts` and `bun tools/verify-ui-bombed.ts` compare conversations, inventory, terminals, intro cards, HUD, pause, endings and the bomber display; `bun tools/verify-snapshot.ts` checks save states.
 
-## Snapshots and tools
+State of the checks:
 
-* `tools/emu/dosemu.py`: DOS/VGA environment around unicorn; `Dos.call(off, *args)` calls a near function.
-* `tools/emu/snapshot.py [frames] [scene...]`: full memory in each room after N frames, `out/snapshots/`.
-* `tools/emu/trace.py <seg:off> [n] [words] [near|far|int]`: per-function cases (memory, DAC, DOS machine state), `out/difftest/`.
-* `tools/emu/rekit.py`: disassembly with `seg:off` labels, callers, DS references, initial DS values.
-* `tools/emu/callgraph.py`: static call graph, `out/callgraph.json`.
-* `tools/difftest.ts` (`bun run difftest`): replays cases against `tools/ports/*.ts`; cases with machine state go through `machineState` from `tools/ports/dos.ts`.
-* `tools/emu/lockstep.py [frames] [stride]` and `tools/lockstep.ts [frames]`: whole-game check, see below.
+* The attract demo (3000 passes, both demos and three attract handoffs) has no divergence, from a native boot and from an import.
+* The 138 scenarios (new game, every object class, room exits, lifts, deaths, pickups, conversations, inventory, all terminals, saves, the bomber and the endings) have no divergence.
+* 115 of 121 rooms are pixel-identical; the other 6 differ only where the original reads past the 100-row backdrop.
+* Attract frames match except for documented effects of the original's dirty-rectangle redraw: objects that moved half a pixel are not redrawn, some redrawn objects never reach the screen, and equal-depth objects in a partial redraw sort differently.
+  The native renderer draws whole frames and does not reproduce those.
 
-Ignored in comparisons: the stack slack below SP, sprintf's cursor `DS:2d4a` (holds a stack address), and in lockstep also the timer handler's own stack and saved SS:SP (`DS:2740-27a1`, `14c8:010f-0112`).
+Known limits:
 
-## The whole game
+* The tick model of the harness is deterministic but approximate (the music timer runs once per tick), so boot timing equals the original under that model, not necessarily on hardware.
+* A coverage audit (harness hooks on every class function) left some branches unreached: a few the shipped levels never reach (door messages other than 4 and 9, message type 3), and some reachable ones no scenario sets up yet (a player death without a sender, the DGEN touch outside scene index 0x39, a survivor touched on the jet-pack roof).
+  Those are ported from the disassembly only.
+* The remaining `not ported` throws are the menus' demo-recording and demo-playback branches, which play never reaches, and a player death without a sender, where the original reads through a null pointer.
 
-`./src/engine/boot.ts` loads `GAME.EXE` like the emulator's DOS does (relocations, PSP, environment, interrupt vector stubs), runs the ported C startup and `main()`'s prologue, and `./src/engine/core/game.ts` `gameFrame()` runs one pass of the main loop.
-`./src/engine/index.ts` imports every ported module so pointer calls resolve.
+## Browser host
 
-DOS, BIOS and hardware are `./src/engine/dos/` (`Machine`): files come from a preloaded map, interrupts go through the vector table in memory, ports 3c8/3c9 feed the DAC, `keyboardInterrupt(m, scancode)` raises int 9.
-There are no asynchronous interrupts.
-The game's wait loops (frame sync `0:2016`, delay `0:3b71`, menu pauses `0:ac71`, `0:acf1`, `0:b46a`) call `waitTick()` before every poll of their timer, which runs `Machine.pace` (the host's real-time wait) and then one timer interrupt.
-When the game finds the BIOS keyboard buffer empty, `Machine.idle` lets the host deliver key events.
-
-`tools/emu/lockstep.py` runs the original under exactly that timer rule and saves memory at every main-loop pass; `tools/lockstep.ts` boots the port and compares every frame.
-The original also reads a few stack bytes it never wrote; their values are fixed in both (`UNINITIALISED` in lockstep.py, e.g. `0:42bd` record byte 3).
-The demo runs identically for at least 8000 frames.
-
-In the browser (`./src/play/`) the game runs in a worker on SharedArrayBuffers: the page draws A000 with the DAC every animation frame and pushes scancodes into a ring the worker delivers at `pace`/`idle`.
-SharedArrayBuffer needs cross-origin isolation: `vite.config.ts` sends `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`; a production host must send them too.
-Files the game writes (the Alt-S save `DATA\SAVE.DAT`, restored with Alt-O; F5 and F9 type those keys) reach the page through `Machine.saved` and are kept in localStorage as `d-generation:<DOS path>`; at start they replace the shipped file of the same name.
-The browser build has unlimited lives: the worker tops the lives counter (`DS:3362`) back up to 5 after every frame, so the ported game code stays as in GAME.EXE.
-The DOS game has no music, so the browser plays the Amiga AGA tracks by game phase: the worker cues `dgen.mod` while the demo plays or the title is due (`DS:1987` or `DS:198c` set after a frame) and `dgen2.mod` otherwise.
-Audio starts with the first key press; in Play mode the header Music button mutes it, remembered in localStorage as `d-generation-music`.
-
-## Coverage
-
-628 functions are ported.
-388 are verified against recorded calls; 240 never run in the demo (saving, conversations, many object behaviours) and are checked only by reading.
-Covering them needs scripted input in lockstep runs (keys at given frames in both the emulator and the port).
+* The Play page runs `Game.boot()` and `Game.frame()` in a module Worker.
+  Every cooperative PAL tick (20 ms) calls `Game.onTick`; the Worker takes raw input from a shared ring (`Game.deliver()`), renders the current picture into a shared frame buffer and sleeps on Atomics until its slot, so the original's synchronous waits (intro, pause, prompts, endings) run unchanged.
+  SharedArrayBuffer needs cross-origin isolation: `./vite.config.ts` sends `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`; a production host must send them too.
+* Keys arrive as Amiga raw codes; held arrows combine into the cursor or keypad diagonal codes. The gamepad maps the stick to directions, button 0 to fire and button 1 to use.
+* Sound effects play through WebAudio with the original's four-channel allocation; music follows the original (title and good ending only). The Sound button mutes, remembered in localStorage as `d-generation-aga-sound`.
+* Alt+S / Alt+R are the original checkpoint save and restore (nonvolatile items, kept in localStorage under `d-generation-aga-nv:`).
+  F5 and F9 are save states: `Game.snapshot()` returns structured-cloneable data kept in IndexedDB (`d-generation-aga`, store `snapshots`), `Game.restore()` puts it back, also from inside a wait.
+* Ctrl+B opens the original CD32 menu.

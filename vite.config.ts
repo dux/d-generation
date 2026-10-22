@@ -1,17 +1,10 @@
-import { cpSync, readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { cpSync, createReadStream, statSync } from "node:fs";
+import { resolve, sep } from "node:path";
 import { defineConfig } from "vite";
 
-// Game data is read straight from the original folders: dev serves them from the root,
-// the build copies them next to the bundle.
-const GAME_DIRS = ["dgener", "amiga"];
-
-function listFiles(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const path = join(dir, name);
-    return statSync(path).isDirectory() ? listFiles(path) : [relative("dgener", path).replaceAll("\\", "/")];
-  });
-}
+// The AGA disk files are read straight from ./amiga: dev serves them from the root, the build copies them next to
+// the bundle. The floors in ./levels are bundled as text (./src/game/host/files.ts).
+const GAME_DIR = "amiga";
 
 // The game worker uses SharedArrayBuffer, which needs cross-origin isolation (serve these headers in production too).
 const ISOLATION = { "Cross-Origin-Opener-Policy": "same-origin", "Cross-Origin-Embedder-Policy": "require-corp" };
@@ -24,14 +17,24 @@ export default defineConfig({
   plugins: [
     {
       name: "game-files",
-      resolveId: (id) => (id === "virtual:game-files" ? "\0virtual:game-files" : undefined),
-      load: (id) => (id === "\0virtual:game-files" ? `export default ${JSON.stringify(listFiles("dgener"))};` : undefined),
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          const pathname = decodeURIComponent((req.url ?? "").split("?")[0]);
+          if (!pathname.startsWith(`/${GAME_DIR}/`)) return next();
+          const path = resolve(".", pathname.slice(1));
+          if (!path.startsWith(resolve(GAME_DIR) + sep) || !statSync(path, { throwIfNoEntry: false })?.isFile()) return next();
+          // Serve original disk bytes before Vite's JS analysis (the AGA executable has no extension).
+          res.setHeader("Content-Type", "application/octet-stream");
+          for (const [name, value] of Object.entries(ISOLATION)) res.setHeader(name, value);
+          createReadStream(path).on("error", next).pipe(res);
+        });
+      },
     },
     {
       name: "copy-game-data",
       apply: "build",
       closeBundle() {
-        for (const dir of GAME_DIRS) cpSync(dir, `dist/${dir}`, { recursive: true });
+        cpSync(GAME_DIR, `dist/${GAME_DIR}`, { recursive: true });
       },
     },
   ],

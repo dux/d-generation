@@ -37,18 +37,18 @@ export class Screen {
     if (x >= 0 && x < this.width && y >= 0 && y <= this.bottom) this.pixels[y * this.width + x] = color;
   }
 
-  // Sprite blit with color 0 as transparent (GAME.EXE VGA driver 23ac:0340).
+  // Sprite blit with color 0 as transparent (GAME.EXE VGA driver 23ac:0340), or the frame mask when it has one.
   // shift is added to every color, or only to scheme colors (<= 0x4f) when schemeOnly;
   // skipLeft/skipRight drop source columns (wall joins).
   blit(frame: Frame, x: number, y: number, { shift = 0, schemeOnly = false, skipLeft = 0, skipRight = 0 }: BlitOptions = {}): void {
-    const { width, height, pixels } = frame;
+    const { width, height, pixels, mask } = frame;
     for (let row = 0; row < height; row++) {
       const sy = y + row;
       if (sy < 0 || sy >= this.bottom) continue;
       for (let col = skipLeft; col < width - skipRight; col++) {
         let color = pixels[row * width + col];
         const sx = x + col;
-        if (color === 0 || sx < 0 || sx >= this.width) continue;
+        if ((mask ? !mask[row * width + col] : color === 0) || sx < 0 || sx >= this.width) continue;
         if (!schemeOnly || color <= 0x4f) color = (color + shift) & 0xff;
         this.pixels[sy * this.width + sx] = color;
       }

@@ -1,0 +1,12 @@
+[{"frame":5,"key":64,"down":true},
+{"frame":7,"key":64,"down":false},
+{"frame":20,"poke":[{"g":"8a24","width":1,"value":68},
+{"g":"6602","width":2,"value":1},
+{"g":"8a22","width":1,"value":20},
+{"g":"8a23","width":1,"value":2},
+{"g":"85da","width":1,"value":134},
+{"g":"85db","width":1,"value":79},
+{"g":"85dc","width":1,"value":6},
+{"g":"85ef","width":1,"value":1}]},
+{"tick":4492,"key":79,"down":true},
+{"tick":4511,"key":79,"down":false}]

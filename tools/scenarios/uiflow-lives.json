@@ -1,0 +1,2 @@
+[{"frame":100,"poke":[{"g":"4d9","width":1,"value":0},{"g":"85f2","width":1,"value":2},{"g":"de38","width":2,"value":7},{"g":"de3a","width":2,"value":12}]},
+ {"frame":150,"key":99,"down":true},{"frame":150,"key":32,"down":true},{"frame":151,"key":32,"down":false},{"frame":152,"key":99,"down":false}]

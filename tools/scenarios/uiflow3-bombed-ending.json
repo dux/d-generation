@@ -1,0 +1,11 @@
+[
+  {"frame":110,"poke":[
+    {"g":"4d9","width":1,"value":0},
+    {"g":"4ee","width":1,"value":1},
+    {"g":"d95c","width":1,"value":1},
+    {"g":"d95d","width":1,"value":1},
+    {"g":"d95a","width":2,"value":0}
+  ]},
+  {"tick":5300,"key":64,"down":true},
+  {"tick":5305,"key":64,"down":false}
+]
