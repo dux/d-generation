@@ -2,7 +2,8 @@ import type { GameSnapshot } from "../index.ts";
 import type { HostAudio } from "./audio.ts";
 import { HostInput, readJoystick } from "./input.ts";
 import {
-  CONTROL_INTS, FRAME, FRAME_BYTES, HEIGHT, JOY, KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE, RESTORE, SAVE, WIDTH,
+  CONTROL_INTS, FRAME, FRAME_BYTES, GIVE_BOMBS, GIVE_GRENADES, HEIGHT, JOY, KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE,
+  RESTORE, SAVE, WIDTH,
   type PageMessage, type WorkerMessage,
 } from "./shared.ts";
 import { ENHANCED_HEIGHT, ENHANCED_WIDTH, XbrRenderer } from "./xbr.ts";
@@ -33,6 +34,8 @@ export interface AgaHandle {
   save(): void; // F5: save state after the current main-loop pass
   restore(): void; // F9: back to the last saved state
   restartLevel(): void; // Ctrl+R, the original restart from the floor's checkpoint (where you arrived on it)
+  giveGrenade(): void; // +1 grenade (T throws it)
+  giveBomb(): void; // +1 bomb (inventory, U)
   setEnhanced(on: boolean): boolean; // xBR view (./xbr.ts) on or off; false when the browser has no WebGL2
 }
 
@@ -75,7 +78,7 @@ function snapshotRequest<T>(db: IDBDatabase, mode: IDBTransactionMode, run: (sto
 export async function startAga(options: AgaHostOptions): Promise<AgaHandle> {
   if (!crossOriginIsolated) throw new Error("the page needs cross-origin isolation (COOP/COEP headers) for SharedArrayBuffer");
   const { canvas, box, audio, onStatus } = options;
-  const help = `${options.demo ? "Title" : "New game"} - arrows move, Space laser, T grenade, U inventory, Enter talk, Esc pause, F5 save, F9 restore`;
+  const help = "arrows move, Space laser, T grenade, U inventory, Enter talk, Esc pause, F5 save, F9 restore";
   const control = new SharedArrayBuffer(CONTROL_INTS * 4);
   const frame = new SharedArrayBuffer(FRAME_BYTES);
   const ctrl = new Int32Array(control);
@@ -250,5 +253,12 @@ export async function startAga(options: AgaHostOptions): Promise<AgaHandle> {
     animation = requestAnimationFrame(draw);
   };
   animation = requestAnimationFrame(draw);
-  return { stop, save, restore: () => void restore(), restartLevel, setEnhanced };
+  const give = (slot: number, what: string) => {
+    Atomics.add(ctrl, slot, 1);
+    status(`${what} added`);
+  };
+  return {
+    stop, save, restore: () => void restore(), restartLevel, setEnhanced,
+    giveGrenade: () => give(GIVE_GRENADES, "grenade"), giveBomb: () => give(GIVE_BOMBS, "bomb"),
+  };
 }

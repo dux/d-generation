@@ -35,7 +35,7 @@ Full details: `./doc/porting.md` (architecture, rules, verification status, know
 
 ## Added in this port
 
-Five additions to the original game, added by Dino Reic ([@dux](https://github.com/dux)).
+Six additions to the original game, added by Dino Reic ([@dux](https://github.com/dux)).
 All live in the browser host; the ported game code stays exactly as in the executable.
 
 * **Save / restore anywhere:** F5 / F9, or the Save / Restore buttons in the header, save and restore the full game state at any moment (kept in IndexedDB).
@@ -47,6 +47,7 @@ All live in the browser host; the ported game code stays exactly as in the execu
   It follows 1:1 and 2:1 edges, so diagonal lines get even steps at the doubled resolution, and every new pixel takes one of its neighbours' colours: no blur, no new colours.
   Off by default; the setting is remembered.
 * **River's shield up front:** River in scene 75 hands over her shield as soon as you start talking to her, once, instead of only after one particular chain of answers.
+* **+Grenade / +Bomb buttons:** one more grenade (up to 99) or bomb (up to 9) per click.
 
 ## How each part was ported
 
@@ -104,6 +105,7 @@ The game runs in a module Worker on shared memory, so it needs cross-origin isol
 * Alt+S / Alt+R: the original checkpoint save and restore (kept in localStorage).
 * F5 / F9, or the Save / Restore buttons: save states (kept in IndexedDB).
 * Restart level button (the original Ctrl+R): back to where you arrived on the current floor, after a confirmation.
+* +Grenade / +Bomb buttons: one more grenade or bomb.
 * Enhanced button: twice the pixel density (xBR-lv2-noblend) on or off.
 * Ctrl+B: the original CD32 menu.
 

@@ -12,7 +12,8 @@ import type { Talker } from "../ui/talk/talk.ts";
 import { gameFileReader } from "./files.ts";
 import { keyboardShown, PadTypist } from "./typing.ts";
 import {
-  FRAME, HEIGHT, JOY, KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE, RESTORE, SAVE, SLEEP, TYPED, WIDTH,
+  FRAME, GIVE_BOMBS, GIVE_GRENADES, HEIGHT, JOY, KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE, RESTORE, SAVE, SLEEP,
+  TYPED, WIDTH,
   type PageMessage, type WorkerMessage,
 } from "./shared.ts";
 
@@ -24,6 +25,9 @@ const SCENES = 150;
 // over as soon as a conversation with her starts. Her asked-topics word (+d0) records topic 9, so it happens once.
 const RIVER_SCENE = 75;
 const RIVER_GIFT_TOPIC = 9;
+// +Grenade / +Bomb caps: the stats screen prints grenades with two digits, the inventory a bomb count with one.
+const MAX_GRENADES = 99;
+const MAX_BOMBS = 9;
 
 function post(message: WorkerMessage): void {
   postMessage(message);
@@ -130,11 +134,20 @@ async function run(start: Extract<PageMessage, { type: "start" }>): Promise<void
     state.shieldCount = (state.shieldCount + 1) & 0xff;
   };
 
+  // The +Grenade and +Bomb buttons. Bombs are inventory item 0, kept in `portableLaserCount`.
+  const giveItems = () => {
+    const state = game.state;
+    const grenades = Atomics.exchange(ctrl, GIVE_GRENADES, 0), bombs = Atomics.exchange(ctrl, GIVE_BOMBS, 0);
+    if (grenades) state.ammo = Math.max(state.ammo, Math.min(MAX_GRENADES, state.ammo + grenades));
+    if (bombs) state.portableLaserCount = Math.max(state.portableLaserCount, Math.min(MAX_BOMBS, state.portableLaserCount + bombs));
+  };
+
   let next = performance.now();
   const typist = new PadTypist();
   game.onTick = () => {
     if (Atomics.load(ctrl, RESTORE)) throw new GameInterrupt("restore requested");
     giveRiverGift();
+    giveItems();
     const typing = keyboardShown(game);
     const rawKeyEvents: { key: number; down: boolean }[] = [];
     while (Atomics.load(ctrl, KEYS_READ) !== Atomics.load(ctrl, KEYS_WRITTEN)) {

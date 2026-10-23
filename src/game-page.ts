@@ -13,6 +13,8 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 const saveButton = $<HTMLButtonElement>("save");
 const restoreButton = $<HTMLButtonElement>("restore");
 const restartButton = $<HTMLButtonElement>("restart");
+const grenadeButton = $<HTMLButtonElement>("grenade");
+const bombButton = $<HTMLButtonElement>("bomb");
 const enhancedButton = $<HTMLButtonElement>("enhanced");
 const soundButton = $<HTMLButtonElement>("sound");
 const stopped = $<HTMLDivElement>("stopped");
@@ -49,6 +51,14 @@ restoreButton.addEventListener("click", () => {
 restartButton.addEventListener("click", () => {
   restartButton.blur();
   if (game && confirm("Restart this level? You go back to where you arrived on this floor.")) game.restartLevel();
+});
+grenadeButton.addEventListener("click", () => {
+  grenadeButton.blur();
+  game?.giveGrenade();
+});
+bombButton.addEventListener("click", () => {
+  bombButton.blur();
+  game?.giveBomb();
 });
 soundButton.addEventListener("click", () => {
   soundButton.blur();

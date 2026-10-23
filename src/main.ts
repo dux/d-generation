@@ -74,6 +74,8 @@ const musicButton = $<HTMLButtonElement>("music");
 const saveButton = $<HTMLButtonElement>("save");
 const restoreButton = $<HTMLButtonElement>("restore");
 const restartButton = $<HTMLButtonElement>("restart");
+const grenadeButton = $<HTMLButtonElement>("grenade");
+const bombButton = $<HTMLButtonElement>("bomb");
 const enhancedButton = $<HTMLButtonElement>("enhanced");
 const canvas = $<HTMLCanvasElement>("view");
 const agaBox = $<HTMLDivElement>("aga-box");
@@ -262,7 +264,7 @@ async function selectMode(next: Mode, item?: string) {
   agaBox.hidden = !playing;
   canvas.hidden = playing;
   paletteSelect.hidden = playing;
-  saveButton.hidden = restoreButton.hidden = restartButton.hidden = !playing;
+  saveButton.hidden = restoreButton.hidden = restartButton.hidden = grenadeButton.hidden = bombButton.hidden = !playing;
   showAga(playing, item);
   applyEnhanced();
   if (playing) return;
@@ -309,6 +311,14 @@ restoreButton.addEventListener("click", () => {
 restartButton.addEventListener("click", () => {
   restartButton.blur();
   if (aga && confirm("Restart this level? You go back to where you arrived on this floor.")) aga.restartLevel();
+});
+grenadeButton.addEventListener("click", () => {
+  grenadeButton.blur();
+  aga?.giveGrenade();
+});
+bombButton.addEventListener("click", () => {
+  bombButton.blur();
+  aga?.giveBomb();
 });
 enhancedButton.addEventListener("click", () => {
   enhancedButton.blur();

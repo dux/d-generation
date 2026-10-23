@@ -29,6 +29,13 @@ export interface DerridaActor extends Actor {
   surProtected: number;
   surRecordState: number;
   surProfileFlags: number;
+  // The rest of the SUR layout the conversation code reads (./src/game/ui/talk/talk.ts); the cleared pool entry
+  // (h0:1996) leaves them zero.
+  surAlerted: number;
+  surCarrying: number;
+  surAttackTime: number;
+  surTopic: number;
+  surAsked: number;
 }
 
 const TWITCH = [1, 0, 1, 0, -1] as const; // g:3f81
@@ -88,7 +95,7 @@ export const derridaClass: ActorClass<DerridaActor> = {
     derridaPiece: 0, lastPlayerX: 0, lastPlayerY: 0, surHunting: 0, derridaTwitchTime: 0, surTargetId: 0,
     derridaTwitchAnimationTime: 0, derridaTwitching: 0, derridaSpoke: 0, surSitting: 0, surStanding: 0, surHealth: 0,
     surCanWander: 0, surReaction: 0, surBaseAnimation: 0, surProfile: null, surGrabType: 0, surProtected: 0,
-    surRecordState: 0, surProfileFlags: 0,
+    surRecordState: 0, surProfileFlags: 0, surAlerted: 0, surCarrying: 0, surAttackTime: 0, surTopic: 0, surAsked: 0,
   }),
   // h0:84ea: front shape set 4, piece index in byte 3, fixed skin/clothes quads at scheme 16.
   init(ctx, actor, spec) {
