@@ -68,6 +68,7 @@ Known limits:
 * This executable is the CD32 build: terminal prompts (user name, passcode, entrance code) are typed on its on-screen keyboard with the pad only.
   For keyboard players the host plays the pad (`./src/game/host/typing.ts`): each typed character moves the on-screen cursor to that key and presses red, Enter picks RET and Backspace DEL; other key presses are dropped while the prompt is up.
 * Sound effects play through WebAudio with the original's four-channel allocation; music follows the original (title and good ending only). The Sound button mutes, remembered in localStorage as `d-generation-aga-sound`.
+* Lives are unlimited: after every main-loop pass the Worker sets the lives counter back to 5, so the ported game code stays as in the executable.
 * Alt+S / Alt+R are the original checkpoint save and restore (nonvolatile items, kept in localStorage under `d-generation-aga-nv:`).
   F5 and F9 are save states: `Game.snapshot()` returns structured-cloneable data kept in IndexedDB (`d-generation-aga`, store `snapshots`), `Game.restore()` puts it back, also from inside a wait.
 * Ctrl+B opens the original CD32 menu.

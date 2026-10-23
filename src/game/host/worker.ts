@@ -17,6 +17,7 @@ import {
 
 const TICK_MS = 20; // PAL vblank
 const MAX_LAG_MS = 250; // further behind (background tab, slow pass) the clock jumps instead of catching up
+const LIVES = 5; // a new game's lives (h0:e4e)
 const SCENES = 150;
 
 function post(message: WorkerMessage): void {
@@ -148,6 +149,9 @@ async function run(start: Extract<PageMessage, { type: "start" }>): Promise<void
       if (!game.booted) game.boot();
       for (;;) {
         game.frame();
+        // Unlimited lives in the browser: the lives counter (g:85d4) goes back to 5 after every pass, so the
+        // ported game code stays as in the executable.
+        if (game.state.lives < LIVES) game.state.lives = LIVES;
         flush();
         if (game.quitRequested) {
           draw();
