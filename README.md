@@ -27,13 +27,18 @@ The port is verified in lockstep against the original, not eyeballed.
 * Every ported function starts with a comment naming its address in the original executable, e.g. `// h0:4cbc plyUpdate(): ...`, so any line can be traced back to the 68000 code.
 * Integer semantics are kept where they are observable: 8.8 fixed-point positions, byte timers, signedness, wrap-around, truncating division and the order of random calls.
 
-Deliberate differences, none of them in the game logic:
-
-* The native renderer draws whole frames, so it does not reproduce the original's dirty-rectangle glitches (objects that moved half a pixel not being redrawn, equal-depth sprites sorting differently in partial redraws).
-* Lives are unlimited in browser play: the host tops the lives counter back up to 5 after every main-loop pass, the ported game code stays as in the executable.
-* Save states (F5 / F9) are added on top of the original checkpoint saves.
+One deliberate difference in drawing: the native renderer draws whole frames, so it does not reproduce the original's dirty-rectangle glitches (objects that moved half a pixel not being redrawn, equal-depth sprites sorting differently in partial redraws).
 
 Full details: `./doc/porting.md` (architecture, rules, verification status, known limits) and `./doc/formats.md` (every original file format).
+
+## Added in this port
+
+Two features that are not in the original game, added by Dino Reic ([@dux](https://github.com/dux)).
+Both live in the browser host; the ported game code stays exactly as in the executable.
+
+* **Save / restore anywhere:** F5 / F9, or the Save / Restore buttons in the header, save and restore the full game state at any moment (kept in IndexedDB).
+  The original checkpoint saves (Alt+S / Alt+R) still work as before.
+* **Unlimited lives:** after every main-loop pass the host sets the lives counter back to 5, so you never get a game over.
 
 ## How each part was ported
 
