@@ -3,17 +3,15 @@
 Notes from reverse engineering the Amiga AGA release in `./amiga/aga/`.
 `./amiga/aga/dgen` is "D/Generation V1.0 Copyright 1993 Robert Cook, Conversion by Abersoft Sep 17 1993", the final version of the game.
 Addresses are `h<k>:<offset>` in the executable's hunks, globals `g:<h11 offset>` (see `./doc/porting.md`).
-The DOS prerelease (`./dgener/GAME.EXE`, "D-Generation V0.62 Copyright 1991") shares most formats; comments in the code still name its functions (`DOS 0:xxxx`) where the two releases have the same routine.
+The DOS prerelease ("D-Generation V0.62 Copyright 1991", `GAME.EXE`, no longer in the repository) shares most formats; comments in the code still name its functions (`DOS 0:xxxx`) where the two releases have the same routine.
 
 ## Sources
 
-`./amiga/aga/` and `./amiga/ocs/` are the files from the Amiga disk images in `./amiga-src/`, unpacked once with amitools:
+`./amiga/aga/` holds the files from the two AGA disk images in `./amiga-src/`, unpacked once with amitools and merged into one folder:
 
 ```sh
-uvx --from amitools xdftool "amiga-src/D-Generation (AGA)_Disk1.adf" unpack tmp/aga1   # repeat per disk
+uvx --from amitools xdftool "amiga-src/D-Generation (AGA)_Disk1.adf" unpack tmp/aga1   # repeat for disk 2
 ```
-
-Disk 1 and disk 2 of each release are merged into one folder.
 
 ## Tools
 
@@ -122,4 +120,3 @@ The modules and `amiga.eff` share one buffer: `dgen.mod` plays on the first titl
 
 * `DATA/DEMO50.SEQ`, `DATA/DEMO52.SEQ`: the attract demos, 500 six-byte direction records followed by 900 five-byte button records.
 * `DATA/DGEN.CFG`: 12 bytes the game checks at boot (`./src/game/ui/save.ts`).
-* `./amiga/ocs/` is the OCS release: `amiga.mus` and `amiga.eff` carry 68000 replay code with embedded music and samples, `*.AIM` are its cutscene images (not decoded).

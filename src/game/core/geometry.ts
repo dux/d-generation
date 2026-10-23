@@ -428,7 +428,6 @@ export function moveToward(ctx: ActorContext,a: Actor,target: Actor|null,range:n
 export function chase(ctx: ActorContext,a: Actor,target: Actor|null,range:number,speed:number): number {return moveToward(ctx,a,target,range,-1,speed);}
 export const targetAim=chase;
 export const sightActor=chase;
-export const directionalSight=moveToward;
 
 // h0:db40/dae8 (DOS fff:0067): 16-bit sum of squares and bounded Newton iteration.
 export function distance(dx:number,dy:number): number {

@@ -1,9 +1,10 @@
-import { cpSync, createReadStream, statSync } from "node:fs";
+import { createReadStream, statSync } from "node:fs";
 import { resolve, sep } from "node:path";
 import { defineConfig } from "vite";
 
-// The AGA disk files are read straight from ./amiga: dev serves them from the root, the build copies them next to
-// the bundle. The floors in ./levels are bundled as text (./src/game/host/files.ts).
+// The AGA disk files are read straight from ./amiga, which dev serves from the root; `bun run build`
+// (./tools/build-pages.ts) copies the ones the game loads into ./docs, the GitHub Pages site. The floors in
+// ./levels are bundled as text (./src/game/host/files.ts).
 const GAME_DIR = "amiga";
 
 // The game worker uses SharedArrayBuffer, which needs cross-origin isolation (serve these headers in production too).
@@ -28,13 +29,6 @@ export default defineConfig({
           for (const [name, value] of Object.entries(ISOLATION)) res.setHeader(name, value);
           createReadStream(path).on("error", next).pipe(res);
         });
-      },
-    },
-    {
-      name: "copy-game-data",
-      apply: "build",
-      closeBundle() {
-        cpSync(GAME_DIR, `dist/${GAME_DIR}`, { recursive: true });
       },
     },
   ],

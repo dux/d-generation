@@ -26,6 +26,7 @@ export type PageMessage =
   | {
     type: "start";
     demo: boolean; // true: boot into the story and attract; false: boot straight into a new game
+    base: string; // the page's document.baseURI: game files are fetched relative to it
     control: SharedArrayBuffer;
     frame: SharedArrayBuffer;
     nonvolatile: [string, Uint8Array][]; // saved games (nonvolatile.library items) kept by the page

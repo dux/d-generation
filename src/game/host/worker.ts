@@ -8,7 +8,7 @@ import { roomImage } from "../render/room.ts";
 import { loadUiAssets } from "../ui/assets.ts";
 import { drawPadMenu } from "../ui/padmenu-render.ts";
 import { renderScreen } from "../ui/render.ts";
-import { readGameFile } from "./files.ts";
+import { gameFileReader } from "./files.ts";
 import { PadTypist } from "./typing.ts";
 import {
   FRAME, HEIGHT, JOY, KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE, RESTORE, SAVE, SLEEP, TYPED, WIDTH,
@@ -73,6 +73,7 @@ async function run(start: Extract<PageMessage, { type: "start" }>): Promise<void
   const ctrl = new Int32Array(start.control);
   const shared = new Uint8ClampedArray(start.frame);
   const rgba = new Uint8ClampedArray(shared.length);
+  const readGameFile = gameFileReader(start.base);
   const [game, assets, ui] = await Promise.all([
     createGame(readGameFile, { demo: start.demo, storage: new PageNonVolatile(start.nonvolatile) }),
     loadAgaAssets((path) => readGameFile(`amiga/aga/${path}`)),

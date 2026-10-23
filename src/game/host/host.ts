@@ -27,6 +27,8 @@ export interface AgaHostOptions {
 
 export interface AgaHandle {
   stop(): void;
+  save(): void; // F5: save state after the current main-loop pass
+  restore(): void; // F9: back to the last saved state
 }
 
 function savedItems(): [string, Uint8Array][] {
@@ -176,6 +178,8 @@ export async function startAga(options: AgaHostOptions): Promise<AgaHandle> {
   };
   worker.onerror = (event) => fail(new Error(event.message || "game worker failed to start"));
 
+  const save = () => Atomics.store(ctrl, SAVE, 1);
+  const restore = () => restoreState().catch((error) => status(`restore failed: ${error}`));
   input = new HostInput(
     (raw) => {
       const written = Atomics.load(ctrl, KEYS_WRITTEN);
@@ -183,15 +187,12 @@ export async function startAga(options: AgaHostOptions): Promise<AgaHandle> {
       ctrl[KEY_RING + (written % KEY_RING_SIZE)] = raw;
       Atomics.store(ctrl, KEYS_WRITTEN, written + 1);
     },
-    {
-      F5: () => Atomics.store(ctrl, SAVE, 1),
-      F9: () => restoreState().catch((error) => status(`restore failed: ${error}`)),
-    },
+    { F5: save, F9: () => void restore() },
     () => audio.unlock(),
   );
 
   onStatus("Loading...");
-  postToWorker({ type: "start", demo: options.demo, control, frame, nonvolatile: savedItems() });
+  postToWorker({ type: "start", demo: options.demo, base: document.baseURI, control, frame, nonvolatile: savedItems() });
 
   let shown = 0;
   const draw = () => {
@@ -205,5 +206,5 @@ export async function startAga(options: AgaHostOptions): Promise<AgaHandle> {
     animation = requestAnimationFrame(draw);
   };
   animation = requestAnimationFrame(draw);
-  return { stop };
+  return { stop, save, restore: () => void restore() };
 }

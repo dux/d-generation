@@ -56,7 +56,7 @@ async function createNode(context: AudioContext): Promise<AudioWorkletNode> {
 }
 
 async function fetchSong(track: Track): Promise<ArrayBuffer> {
-  const response = await fetch(`/amiga/aga/${track}.mod`);
+  const response = await fetch(`amiga/aga/${track}.mod`); // relative to the page
   if (!response.ok) throw new Error(`Failed to load ${track}.mod: ${response.status}`);
   return response.arrayBuffer();
 }

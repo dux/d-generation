@@ -36,12 +36,12 @@ const PALETTES = [
 ];
 const SCHEME_NAMES: Record<Scheme, string> = { 0: "BLUE", 1: "GREEN", 3: "RED", 4: "SCENE" };
 
-// The AGA viewer data: ./amiga/aga files (served as /amiga/aga) and the ./levels floors, bundled as text.
+// The AGA viewer data: ./amiga/aga files (fetched relative to the page) and the ./levels floors, bundled as text.
 let viewerData: Promise<{ assets: AgaAssets; floors: Floor[] }> | null = null;
 function loadViewerData() {
   viewerData ??= (async () => {
     const assets = loadAgaAssets(async (path) => {
-      const res = await fetch(`/amiga/aga/${path}`);
+      const res = await fetch(`amiga/aga/${path}`);
       if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
       return new Uint8Array(await res.arrayBuffer());
     });
@@ -68,6 +68,8 @@ const tabs = $<HTMLDivElement>("tabs");
 const itemSelect = $<HTMLSelectElement>("item");
 const paletteSelect = $<HTMLSelectElement>("palette");
 const musicButton = $<HTMLButtonElement>("music");
+const saveButton = $<HTMLButtonElement>("save");
+const restoreButton = $<HTMLButtonElement>("restore");
 const canvas = $<HTMLCanvasElement>("view");
 const agaBox = $<HTMLDivElement>("aga-box");
 const agaCanvas = $<HTMLCanvasElement>("aga");
@@ -247,6 +249,7 @@ async function selectMode(next: Mode, item?: string) {
   agaBox.hidden = !playing;
   canvas.hidden = playing;
   paletteSelect.hidden = playing;
+  saveButton.hidden = restoreButton.hidden = !playing;
   showAga(playing, item);
   if (playing) return;
   const id = ++renderId;
@@ -280,6 +283,15 @@ itemSelect.addEventListener("change", () => {
   showAga(true);
 });
 paletteSelect.addEventListener("change", render);
+// Save states, as F5 / F9; blur so the game keeps the keyboard (Space would press the button again).
+saveButton.addEventListener("click", () => {
+  saveButton.blur();
+  aga?.save();
+});
+restoreButton.addEventListener("click", () => {
+  restoreButton.blur();
+  aga?.restore();
+});
 
 document.addEventListener("keydown", (e) => {
   if (mode === "play") return; // ./src/game/host/input.ts has the keyboard
