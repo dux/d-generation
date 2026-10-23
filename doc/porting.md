@@ -65,6 +65,8 @@ Known limits:
   Every cooperative PAL tick (20 ms) calls `Game.onTick`; the Worker takes raw input from a shared ring (`Game.deliver()`), renders the current picture into a shared frame buffer and sleeps on Atomics until its slot, so the original's synchronous waits (intro, pause, prompts, endings) run unchanged.
   SharedArrayBuffer needs cross-origin isolation: `./vite.config.ts` sends `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`; a production host must send them too.
 * Keys arrive as Amiga raw codes; held arrows combine into the cursor or keypad diagonal codes. The gamepad maps the stick to directions, button 0 to fire and button 1 to use.
+* This executable is the CD32 build: terminal prompts (user name, passcode, entrance code) are typed on its on-screen keyboard with the pad only.
+  For keyboard players the host plays the pad (`./src/game/host/typing.ts`): each typed character moves the on-screen cursor to that key and presses red, Enter picks RET and Backspace DEL; other key presses are dropped while the prompt is up.
 * Sound effects play through WebAudio with the original's four-channel allocation; music follows the original (title and good ending only). The Sound button mutes, remembered in localStorage as `d-generation-aga-sound`.
 * Alt+S / Alt+R are the original checkpoint save and restore (nonvolatile items, kept in localStorage under `d-generation-aga-nv:`).
   F5 and F9 are save states: `Game.snapshot()` returns structured-cloneable data kept in IndexedDB (`d-generation-aga`, store `snapshots`), `Game.restore()` puts it back, also from inside a wait.

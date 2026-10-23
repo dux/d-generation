@@ -1,3 +1,4 @@
+import { TYPED } from "./shared.ts";
 // KeyboardEvent.code -> Amiga raw key code (key positions of the US keyboard). The game's input.device handler
 // (h0:130a4) turns direction keys into held bits and every other key into a translated character, so all of them
 // are passed on; the game decides what it reads.
@@ -75,10 +76,13 @@ export class HostInput {
       return;
     }
     const code = AMIGA_KEYS[e.code];
-    if (code === undefined) return;
+    const typed = e.key === "Enter" ? 13 : e.key === "Backspace" ? 8 : e.key.length === 1 ? e.key.charCodeAt(0) : 0;
+    if (code === undefined && !typed) return;
     e.preventDefault();
+    // What the key types, for the host's on-screen keyboard typist (./src/game/host/typing.ts).
+    if (down && typed && typed < 0x80) this.send(TYPED | typed);
     // Auto-repeat arrives as repeated presses, as input.device repeats a held key.
-    this.send(down ? code : code | 0x80);
+    if (code !== undefined) this.send(down ? code : code | 0x80);
   }
 }
 

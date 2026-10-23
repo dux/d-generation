@@ -9,8 +9,9 @@ import { loadUiAssets } from "../ui/assets.ts";
 import { drawPadMenu } from "../ui/padmenu-render.ts";
 import { renderScreen } from "../ui/render.ts";
 import { readGameFile } from "./files.ts";
+import { PadTypist } from "./typing.ts";
 import {
-  FRAME, HEIGHT, JOY, KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE, RESTORE, SAVE, SLEEP, WIDTH,
+  FRAME, HEIGHT, JOY, KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE, RESTORE, SAVE, SLEEP, TYPED, WIDTH,
   type PageMessage, type WorkerMessage,
 } from "./shared.ts";
 
@@ -115,16 +116,24 @@ async function run(start: Extract<PageMessage, { type: "start" }>): Promise<void
   };
 
   let next = performance.now();
+  const typist = new PadTypist();
   game.onTick = () => {
     if (Atomics.load(ctrl, RESTORE)) throw new GameInterrupt("restore requested");
+    const typing = !!game.state.input.textEntry;
     const rawKeyEvents: { key: number; down: boolean }[] = [];
     while (Atomics.load(ctrl, KEYS_READ) !== Atomics.load(ctrl, KEYS_WRITTEN)) {
       const read = Atomics.load(ctrl, KEYS_READ);
-      const raw = ctrl[KEY_RING + (read % KEY_RING_SIZE)]!;
-      rawKeyEvents.push({ key: raw & 0x7f, down: !(raw & 0x80) });
+      const value = ctrl[KEY_RING + (read % KEY_RING_SIZE)]!;
       Atomics.store(ctrl, KEYS_READ, read + 1);
+      if (value & TYPED) {
+        if (typing) typist.type(value & 0xff);
+        continue;
+      }
+      // While the on-screen keyboard is up, presses would only queue up as commands for after the prompt.
+      if (typing && !(value & 0x80)) continue;
+      rawKeyEvents.push({ key: value & 0x7f, down: !(value & 0x80) });
     }
-    game.deliver({ rawKeyEvents, joy: Atomics.load(ctrl, JOY) >>> 0 });
+    game.deliver({ rawKeyEvents, joy: typist.joy(game) ?? Atomics.load(ctrl, JOY) >>> 0 });
     flush();
     draw();
     next += TICK_MS;

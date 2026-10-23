@@ -4,8 +4,8 @@ import { drawLine, drawPanel, restoreDisplay, startDelay } from "../talk/box.ts"
 import { lineEnd, PROMPT_COLOR } from "../talk/text.ts";
 
 // g:6092: the 13 x 6 characters of the CD32 on-screen keyboard (backspace and Enter in the last row).
-const KEYS = "1234567890-=\\ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,#;[]<>()\"\b\r";
-const COLUMNS = 13, ROWS = 6;
+export const KEYS = "1234567890-=\\ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,#;[]<>()\"\b\r";
+export const COLUMNS = 13, ROWS = 6;
 const GAME_CONTROLLER = 0x10000000, RED = 1 << 22;
 const TEXT_X = 10, TEXT_Y = 0xb4, LAST_X = 0x131;
 const CURSOR = "_"; // g:1ef4 with h0:bbc0's character
