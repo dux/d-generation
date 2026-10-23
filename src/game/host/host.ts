@@ -7,7 +7,9 @@ import {
 } from "./shared.ts";
 
 // The AGA screen: one 320x200 8-bitplane PAL lowres bitmap (AllocBitMap planes of 40x200 bytes), shown with
-// square pixels (PAL lowres pixels are within 4% of square), so the canvas scales by whole device pixels.
+// square pixels (PAL lowres pixels are within 4% of square). The canvas fills its box at any scale: frames are
+// drawn without smoothing at the next whole multiple of 320x200, then the browser scales that down smoothly, so
+// every game pixel keeps the same width.
 
 // Saved games (nonvolatile.library items, 40 bytes each) as base64 under this prefix.
 const NONVOLATILE_PREFIX = "d-generation-aga-nv:";
@@ -18,7 +20,7 @@ const SNAPSHOT_KEY = "f5";
 
 export interface AgaHostOptions {
   canvas: HTMLCanvasElement;
-  box: HTMLElement; // the canvas is integer-scaled to fit it
+  box: HTMLElement; // the canvas is scaled to fill it at the game's aspect ratio
   audio: HostAudio;
   demo: boolean; // true: boot into the story, title and attract; false: boot straight into a new game
   onStatus: (text: string) => void;
@@ -76,16 +78,24 @@ export async function startAga(options: AgaHostOptions): Promise<AgaHandle> {
   const ctrl = new Int32Array(control);
   Atomics.store(ctrl, JOY, readJoystick());
 
-  canvas.width = WIDTH;
-  canvas.height = HEIGHT;
+  const source = new OffscreenCanvas(WIDTH, HEIGHT);
+  const sourceCtx = source.getContext("2d")!;
+  const image = sourceCtx.createImageData(WIDTH, HEIGHT);
   const ctx = canvas.getContext("2d")!;
-  const image = ctx.createImageData(WIDTH, HEIGHT);
   const pixels = new Uint8ClampedArray(frame);
-  // Whole device pixels per game pixel, and the canvas moved onto the device pixel grid (the page may sit it at
-  // a fractional device position, which would make the rows and columns uneven).
+  const paint = () => ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+  // The largest size that fits the box, and the canvas moved onto the device pixel grid (the page may sit it at a
+  // fractional device position, which would blur a whole-multiple scale).
   const fit = () => {
     const ratio = devicePixelRatio;
-    const scale = Math.max(1, Math.floor(Math.min((box.clientWidth * ratio) / WIDTH, (box.clientHeight * ratio) / HEIGHT)));
+    const scale = Math.min((box.clientWidth * ratio) / WIDTH, (box.clientHeight * ratio) / HEIGHT);
+    const whole = Math.max(1, Math.ceil(scale));
+    if (canvas.width !== WIDTH * whole) {
+      canvas.width = WIDTH * whole; // resets the context state
+      canvas.height = HEIGHT * whole;
+      ctx.imageSmoothingEnabled = false;
+      paint();
+    }
     canvas.style.width = `${(WIDTH * scale) / ratio}px`;
     canvas.style.height = `${(HEIGHT * scale) / ratio}px`;
     canvas.style.margin = "0";
@@ -201,7 +211,8 @@ export async function startAga(options: AgaHostOptions): Promise<AgaHandle> {
     if (sequence !== shown) {
       shown = sequence;
       image.data.set(pixels);
-      ctx.putImageData(image, 0, 0);
+      sourceCtx.putImageData(image, 0, 0);
+      paint();
     }
     animation = requestAnimationFrame(draw);
   };

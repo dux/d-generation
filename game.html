@@ -40,7 +40,7 @@
         border-radius: 4px;
         padding: 4px 10px;
       }
-      /* The canvas is scaled by whole device pixels to fit this box (./src/game/host/host.ts). */
+      /* The canvas fills this box at the game's aspect ratio (./src/game/host/host.ts). */
       #box {
         flex: 1;
         min-height: 0;
@@ -50,7 +50,8 @@
         align-items: center;
       }
       canvas {
-        image-rendering: pixelated;
+        /* Already drawn at a whole multiple of 320x200; only the final shrink to the box is smoothed. */
+        image-rendering: auto;
         display: block;
         background: #000;
       }

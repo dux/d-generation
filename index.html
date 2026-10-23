@@ -71,11 +71,15 @@
         color: #8a8a9a;
         min-height: 1.4em;
       }
-      /* Play: the canvas is scaled by whole device pixels to fit this box (./src/game/host/host.ts). */
+      /* Play: the canvas fills this box at the game's aspect ratio (./src/game/host/host.ts). */
       #aga-box {
         flex: 1;
         min-height: 0;
         overflow: hidden;
+      }
+      /* Already drawn at a whole multiple of 320x200; only the final shrink to the box is smoothed. */
+      #aga {
+        image-rendering: auto;
       }
       #stopped {
         margin-top: 8px;
