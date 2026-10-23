@@ -55,6 +55,9 @@ function loadViewerData() {
 const music = new Music();
 const AGA_SOUND_SETTING = "d-generation-aga-sound";
 let agaSound = localStorage.getItem(AGA_SOUND_SETTING) !== "off";
+// Shared with ./src/game-page.ts.
+const AGA_ENHANCED_SETTING = "d-generation-aga-enhanced";
+let agaEnhanced = localStorage.getItem(AGA_ENHANCED_SETTING) === "on";
 let agaAudio: HostAudio | null = null;
 let aga: AgaHandle | null = null;
 let agaShown = false;
@@ -70,6 +73,7 @@ const paletteSelect = $<HTMLSelectElement>("palette");
 const musicButton = $<HTMLButtonElement>("music");
 const saveButton = $<HTMLButtonElement>("save");
 const restoreButton = $<HTMLButtonElement>("restore");
+const enhancedButton = $<HTMLButtonElement>("enhanced");
 const canvas = $<HTMLCanvasElement>("view");
 const agaBox = $<HTMLDivElement>("aga-box");
 const agaCanvas = $<HTMLCanvasElement>("aga");
@@ -227,11 +231,19 @@ async function startAgaMode(choice: AgaMode) {
     });
     if (id !== renderId || mode !== "play") return handle.stop();
     aga = handle;
+    applyEnhanced();
   } catch (err) {
     if (id !== renderId) return;
     status.textContent = "";
     showStop(err);
   }
+}
+
+// Without WebGL2 the button goes away and the plain view stays.
+function applyEnhanced() {
+  if (aga && !aga.setEnhanced(agaEnhanced)) enhancedButton.dataset.unavailable = "1";
+  enhancedButton.hidden = mode !== "play" || enhancedButton.dataset.unavailable === "1";
+  enhancedButton.textContent = `Enhanced: ${agaEnhanced ? "on" : "off"}`;
 }
 
 // The engine stops at the first thing it has not ported ("... not ported") or any other error: say so plainly.
@@ -251,6 +263,7 @@ async function selectMode(next: Mode, item?: string) {
   paletteSelect.hidden = playing;
   saveButton.hidden = restoreButton.hidden = !playing;
   showAga(playing, item);
+  applyEnhanced();
   if (playing) return;
   const id = ++renderId;
   status.textContent = "Loading...";
@@ -291,6 +304,12 @@ saveButton.addEventListener("click", () => {
 restoreButton.addEventListener("click", () => {
   restoreButton.blur();
   aga?.restore();
+});
+enhancedButton.addEventListener("click", () => {
+  enhancedButton.blur();
+  agaEnhanced = !agaEnhanced;
+  localStorage.setItem(AGA_ENHANCED_SETTING, agaEnhanced ? "on" : "off");
+  applyEnhanced();
 });
 
 document.addEventListener("keydown", (e) => {

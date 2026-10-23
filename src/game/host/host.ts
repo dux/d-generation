@@ -5,12 +5,12 @@ import {
   CONTROL_INTS, FRAME, FRAME_BYTES, HEIGHT, JOY, KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE, RESTORE, SAVE, WIDTH,
   type PageMessage, type WorkerMessage,
 } from "./shared.ts";
-import { XbrRenderer } from "./xbr.ts";
+import { ENHANCED_HEIGHT, ENHANCED_WIDTH, XbrRenderer } from "./xbr.ts";
 
 // The AGA screen: one 320x200 8-bitplane PAL lowres bitmap (AllocBitMap planes of 40x200 bytes), shown with
 // square pixels (PAL lowres pixels are within 4% of square). The canvas fills its box at any scale: frames are
-// drawn without smoothing at the next whole multiple of 320x200, then the browser scales that down smoothly, so
-// every game pixel keeps the same width.
+// drawn without smoothing at the next whole multiple of the picture (320x200, or 640x400 after xBR in the
+// Enhanced view), then the browser scales that down smoothly, so every pixel keeps the same width.
 
 // Saved games (nonvolatile.library items, 40 bytes each) as base64 under this prefix.
 const NONVOLATILE_PREFIX = "d-generation-aga-nv:";
@@ -98,19 +98,18 @@ export async function startAga(options: AgaHostOptions): Promise<AgaHandle> {
   // fractional device position, which would blur a whole-multiple scale).
   const fit = () => {
     const ratio = devicePixelRatio;
-    const scale = Math.min((box.clientWidth * ratio) / WIDTH, (box.clientHeight * ratio) / HEIGHT);
     const view = enhanced ? xbrCanvas! : canvas;
-    // xBR draws at the device size itself; the 2D view draws at the next whole multiple and the browser shrinks it.
+    const pictureWidth = enhanced ? ENHANCED_WIDTH : WIDTH;
+    const pictureHeight = enhanced ? ENHANCED_HEIGHT : HEIGHT;
+    const scale = Math.min((box.clientWidth * ratio) / pictureWidth, (box.clientHeight * ratio) / pictureHeight);
     const whole = Math.max(1, Math.ceil(scale));
-    const width = enhanced ? Math.max(1, Math.round(WIDTH * scale)) : WIDTH * whole;
-    const height = enhanced ? Math.max(1, Math.round(HEIGHT * scale)) : HEIGHT * whole;
-    if (view.width !== width || view.height !== height) {
-      view.width = width; // resets the context state
-      view.height = height;
+    if (view.width !== pictureWidth * whole || view.height !== pictureHeight * whole) {
+      view.width = pictureWidth * whole; // resets the context state
+      view.height = pictureHeight * whole;
       ctx.imageSmoothingEnabled = false;
     }
-    view.style.width = `${(enhanced ? width : WIDTH * scale) / ratio}px`;
-    view.style.height = `${(enhanced ? height : HEIGHT * scale) / ratio}px`;
+    view.style.width = `${(pictureWidth * scale) / ratio}px`;
+    view.style.height = `${(pictureHeight * scale) / ratio}px`;
     view.style.margin = "0";
     const { left, top } = view.getBoundingClientRect();
     view.style.marginLeft = `${(Math.ceil(left * ratio) - left * ratio) / ratio}px`;
