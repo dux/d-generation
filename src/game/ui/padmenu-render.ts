@@ -1,16 +1,10 @@
 import type { Screen } from "../../render/screen.ts";
 import type { GameState } from "../core/model.ts";
 
-// The CD32 pad menu picture (h0:14792: g:df34's planes at h9:3e60): chunky palette indexes extracted from the
-// executable by ./tools/extract-cd32-pictures.ts.
+// The CD32 pad menu picture (h0:14792: g:df34's planes at h9:3e60): assets/images/cd32-padmenu.png, taken from
+// the executable by ./tools/extract-assets.ts.
 export const PAD_MENU_WIDTH = 271, PAD_MENU_HEIGHT = 26;
-export const PAD_MENU_FILE = "data/cd32-padmenu.bin";
 const WIDTH = PAD_MENU_WIDTH, HEIGHT = PAD_MENU_HEIGHT;
-
-export function parsePadMenu(bytes: Uint8Array): Uint8Array {
-  if (bytes.length !== WIDTH * HEIGHT) throw new Error(`${PAD_MENU_FILE} holds ${bytes.length} bytes`);
-  return bytes;
-}
 
 // h0:151a4 saves the underlying display; h0:153ec/15452 invert the selected rectangle with minterm 0x50.
 export function drawPadMenu(screen: Screen, state: GameState, pixels: Uint8Array): void {

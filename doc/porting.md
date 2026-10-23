@@ -1,6 +1,6 @@
 # Native TypeScript port of the AGA release
 
-The game is D/Generation V1.0 for the Amiga AGA (1993), ported to plain TypeScript: levels come from `./levels/floorNN.json5`, graphics and sound are decoded at runtime from the original files in `./amiga/aga/`, and the game logic is typed state and functions, not an emulated machine.
+The game is D/Generation V1.0 for the Amiga AGA (1993), ported to plain TypeScript: levels come from `./levels/floorNN.json5`, graphics and sound from `./assets` (converted once from the original files in `./amiga/aga/` by `bun run extract:assets`), and the game logic is typed state and functions, not an emulated machine.
 Every ported function was checked against the original executable running in a 68000 emulator.
 
 ## Sources of truth
@@ -69,8 +69,8 @@ Known limits:
 
 ## GitHub Pages
 
-* `bun run build` (`./tools/build-pages.ts`) writes `./docs`: `./game.html` as `index.html` with its bundle (the floors are bundled), `coi-sw.js`, `.nojekyll`, and only the `./amiga/aga` and `./data` files the game loads, found by running the worker's loaders (the executable is not among them).
-  Commit `./docs` and set Settings > Pages to deploy from the `main` branch, `/docs` folder.
+* `bun run build` (`./tools/build-pages.ts`) writes `./docs`: `./game.html` as `index.html` with its bundle (the floors are bundled), `coi-sw.js`, `.nojekyll`, and only the `./assets` files the game loads, found by running the worker's loaders; no original file is shipped. Vite's code goes to `bundle/`.
+  Commit `./docs` and set Settings > Pages to deploy from the `master` branch, `/docs` folder.
 * All URLs are relative, so the site works under `https://<user>.github.io/<repo>/`.
 * Pages cannot send headers, so `./src/pages/coi-sw.js` adds COOP/COEP to the site's own responses; the page registers it and reloads once.
 * `bun run preview` serves `./docs` locally with the headers.

@@ -2,10 +2,10 @@ import { createReadStream, statSync } from "node:fs";
 import { resolve, sep } from "node:path";
 import { defineConfig } from "vite";
 
-// The game reads the AGA disk files from ./amiga and the pictures extracted from the executable from ./data, which
-// dev serves from the root; `bun run build` (./tools/build-pages.ts) copies the ones the game loads into ./docs,
-// the GitHub Pages site. The floors in ./levels are bundled as text (./src/game/host/files.ts).
-const GAME_DIRS = ["amiga", "data"];
+// The game reads its data from ./assets (converted from the AGA release by ./tools/extract-assets.ts), which dev
+// serves from the root; `bun run build` (./tools/build-pages.ts) copies the files the game loads into ./docs, the
+// GitHub Pages site. The floors in ./levels are bundled as text (./src/game/host/files.ts).
+const GAME_DIRS = ["assets"];
 
 // The game worker uses SharedArrayBuffer, which needs cross-origin isolation (serve these headers in production too).
 const ISOLATION = { "Cross-Origin-Opener-Policy": "same-origin", "Cross-Origin-Embedder-Policy": "require-corp" };

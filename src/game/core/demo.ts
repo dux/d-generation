@@ -1,6 +1,7 @@
 import type { ActorContext, FrameInput } from "./model.ts";
 import { s8, u16 } from "./int.ts";
 import { updateBounds } from "./geometry.ts";
+import type { DemoRecording } from "../../formats/pack.ts";
 
 export interface DirectionEvent { time: number; direction: number; magnitude: number }
 export interface ButtonEvent { time: number; code: number }
@@ -11,24 +12,18 @@ export interface DemoInputState {
   input?: FrameInput;
 }
 
-// h0:c8ce / h0:f292 / h0:b434: disk records are LE and runtime records are BE/aligned.
+// h0:c8ce / h0:f292 / h0:b434: disk records are LE and runtime records are BE/aligned; assets/demos/demo<n>.json
+// holds them decoded (500 direction records, 900 button records).
 export class DemoInput {
-  private readonly directions: DirectionEvent[] = [];
-  private readonly buttons: ButtonEvent[] = [];
+  private readonly directions: DirectionEvent[];
+  private readonly buttons: ButtonEvent[];
   private readonly previousButtons = [false, false];
   private input: FrameInput = {};
 
-  constructor(bytes: Uint8Array) {
-    if (bytes.length !== 7500) throw new Error(`AGA demo sequence has ${bytes.length} bytes, expected 7500`);
-    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-    for (let i = 0; i < 500; i++) {
-      const at = i * 6;
-      this.directions.push({ time: view.getUint32(at, true), direction: bytes[at + 4], magnitude: bytes[at + 5] });
-    }
-    for (let i = 0; i < 900; i++) {
-      const at = 3000 + i * 5;
-      this.buttons.push({ time: view.getUint32(at, true), code: bytes[at + 4] });
-    }
+  constructor(recording: DemoRecording) {
+    if (recording.directions.length !== 500 || recording.buttons.length !== 900) throw new Error("AGA demo sequence needs 500 direction and 900 button records");
+    this.directions = recording.directions.map((event) => ({ ...event }));
+    this.buttons = recording.buttons.map((event) => ({ ...event }));
   }
 
   setInput(input: FrameInput): void { this.input = input; }

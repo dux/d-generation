@@ -1,4 +1,5 @@
 import type { Floor, ObjectSpec, Room } from "../../formats/level.ts";
+import type { DemoRecording } from "../../formats/pack.ts";
 import { actorClasses } from "../actors/index.ts";
 import { playerClass } from "../actors/player.ts";
 import { initCubeItems, type CubActor } from "../actors/cub.ts";
@@ -163,7 +164,7 @@ export class Game {
     this.bindInput();
   }
 
-  constructor(floors: Floor[], private readonly sequences: ReadonlyMap<number, Uint8Array>, options: GameOptions = {}) {
+  constructor(floors: Floor[], private readonly sequences: ReadonlyMap<number, DemoRecording>, options: GameOptions = {}) {
     this.world = new World(floors);
     this.storage = options.storage ?? new MemoryNonVolatile();
     const scene = options.scene ?? 76;
@@ -221,10 +222,10 @@ export class Game {
 
   private skipStory = false;
 
-  private sequence(id: number): Uint8Array {
-    const bytes = this.sequences.get(id);
-    if (!bytes) throw new Error(`AGA demo sequence ${id} is missing`);
-    return bytes;
+  private sequence(id: number): DemoRecording {
+    const recording = this.sequences.get(id);
+    if (!recording) throw new Error(`AGA demo sequence ${id} is missing`);
+    return recording;
   }
 
   // h0:2640: message (h0:b802), frame, flash, blink, palette and room timers, in slot order.

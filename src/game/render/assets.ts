@@ -1,11 +1,12 @@
-import { decodeVim, parseAgaShapeFile, parseAmigaEffects, unlzw, VIM_WIDTH, type AmigaSample } from "../../formats/aga.ts";
-import { KEYBOARD_FILE, parseKeyboard } from "../ui/terminal/keyboard.ts";
-import { parseDeltaSet, type DeltaSet } from "../../formats/delta.ts";
+import type { DeltaSet } from "../../formats/delta.ts";
+import { readDeltaSet, readImage, readPalettes, readSamples, readSprites, type Read } from "../../formats/pack.ts";
 import { parsePalette, type Palette } from "../../formats/palette.ts";
 import type { ShapeNode } from "../../formats/shape.ts";
+import type { AmigaSample } from "../../formats/sound.ts";
+import { KEYBOARD_HEIGHT, KEYBOARD_WIDTH } from "../ui/terminal/keyboard.ts";
 
-// Graphics and sound of the AGA release, decoded from ./amiga/aga, plus the keyboard picture ./tools/extract-cd32-
-// pictures.ts took out of the executable. readFile() takes paths relative to the repository root.
+// Graphics and sound of the AGA release from ./assets (converted by ./tools/extract-assets.ts). read() takes paths
+// relative to the repository root.
 
 // Sprite banks by the names the executable loads them under (h0:278). B1, INVEN, ANM, DOOR and DOOR2 stay
 // resident (g:55c); the player bank is one of PLY/SHPLY (g:172, h0:6a0) and the object bank group one of
@@ -16,12 +17,8 @@ const DEFAULT_BANKS = ["PLY", "SUR"];
 
 const DELTA_SETS = [1, 2, 3, 20, 22, 23, 24, 25, 27, 30, 31, 32, 33, 34, 53, 54, 55, 60, 61, 62, 63];
 
-// Exact file names on the disk for the names the game asks for ("%s/%s.vim", "%s.pal", case-insensitive there).
-const VIM_FILES: Record<string, string> = {
-  scene58: "SCENE58.VIM", scene114: "SCENE114.VIM", scene139: "SCENE139.VIM", scene145: "SCENE145.VIM",
-  genoq: "genoq.vim", logo: "logo.vim", cred: "CRED.VIM", der: "der.vim", eye: "eye.vim",
-  uk1: "uk1.vim", uk2: "uk2.vim", uk3: "uk3.vim",
-};
+// Pictures the game asks for as "%s/%s.vim" (h0:cc28), by game name.
+const VIMS = ["scene58", "scene114", "scene139", "scene145", "genoq", "logo", "cred", "der", "eye", "uk1", "uk2", "uk3"];
 const SCENE_PALETTES = [58, 114, 139, 145];
 
 export interface AgaAssets {
@@ -46,41 +43,47 @@ export interface AgaAssets {
   vim(name: string): Promise<Uint8Array>;
 }
 
-export async function loadAgaAssets(readFile: (path: string) => Promise<Uint8Array>): Promise<AgaAssets> {
-  const read = (path: string) => readFile(`amiga/aga/${path}`);
+async function picture(read: Read, name: string, width: number, height: number): Promise<Uint8Array> {
+  const image = await readImage(read, name);
+  if (image.width !== width || image.height !== height) throw new Error(`${name}.png is ${image.width}x${image.height}, expected ${width}x${height}`);
+  return image.pixels;
+}
+
+export async function loadAgaAssets(read: Read): Promise<AgaAssets> {
   const banks = new Map<string, Map<number, ShapeNode[]>>();
-  await Promise.all(
-    BANKS.map(async (name) => {
-      const sets = parseAgaShapeFile(await read(`aga/${name.toLowerCase()}.aga`));
+  const deltaSets = new Map<number, DeltaSet>();
+  const [files, , , backdrop, keyboard, sounds] = await Promise.all([
+    readPalettes(read),
+    Promise.all(BANKS.map(async (name) => {
+      const sets = await readSprites(read, name.toLowerCase());
       banks.set(name, new Map(sets.map((set) => [set.id, set.root])));
-    }),
-  );
+    })),
+    Promise.all(DELTA_SETS.map(async (n) => deltaSets.set(n, await readDeltaSet(read, n)))),
+    picture(read, "backdrop", 320, 100),
+    picture(read, "cd32-keyboard", KEYBOARD_WIDTH, KEYBOARD_HEIGHT),
+    readSamples(read),
+  ]);
   const shapes = new Map<number, ShapeNode[]>();
   for (const name of [...DEFAULT_BANKS, ...BANKS]) {
     for (const [id, root] of banks.get(name)!) if (!shapes.has(id)) shapes.set(id, root);
   }
 
-  const deltaSets = new Map<number, DeltaSet>();
-  await Promise.all(DELTA_SETS.map(async (n) => deltaSets.set(n, parseDeltaSet(await read(`DATA/DLTSET${n}.DAT`)))));
-
-  const palette = async (file: string) => parsePalette(await read(`DATA/${file}`));
-  const scenes = new Map<number, Palette>();
-  await Promise.all(SCENE_PALETTES.map(async (n) => scenes.set(n, await palette(`SCENE${n}.PAL`))));
-  const palettes = {
-    dgen: await palette("DGEN.PAL"),
-    blue: await palette("BLUE.PAL"),
-    green: await palette("GREEN.PAL"),
-    red: await palette("RED.PAL"),
-    title: await palette("TITLE.PAL"),
-    genoq: await palette("GENOQ.PAL"),
-    der: await palette("DER.PAL"),
-    bombed: await palette("BOMBED.PAL"),
-    scenes,
+  const palette = (file: string) => {
+    const bytes = files.get(file.toLowerCase());
+    if (!bytes) throw new Error(`no ${file} in assets/palettes.json`);
+    return parsePalette(bytes);
   };
-
-  // h0:cbc8: BACK1.DAT is LZW compressed, 320x100 chunky.
-  const backdrop = unlzw(await read("DATA/BACK1.DAT"));
-  if (backdrop.length !== VIM_WIDTH * 100) throw new Error(`BACK1.DAT holds ${backdrop.length} bytes`);
+  const palettes = {
+    dgen: palette("DGEN.PAL"),
+    blue: palette("BLUE.PAL"),
+    green: palette("GREEN.PAL"),
+    red: palette("RED.PAL"),
+    title: palette("TITLE.PAL"),
+    genoq: palette("GENOQ.PAL"),
+    der: palette("DER.PAL"),
+    bombed: palette("BOMBED.PAL"),
+    scenes: new Map(SCENE_PALETTES.map((n) => [n, palette(`SCENE${n}.PAL`)])),
+  };
 
   const vims = new Map<string, Uint8Array>();
   const assets: AgaAssets = {
@@ -89,16 +92,15 @@ export async function loadAgaAssets(readFile: (path: string) => Promise<Uint8Arr
     deltaSets,
     palettes,
     backdrop,
-    keyboard: parseKeyboard(await readFile(KEYBOARD_FILE)),
-    sounds: parseAmigaEffects(await read("amiga.eff")),
+    keyboard,
+    sounds,
     vims,
     async vim(name: string) {
       const key = name.toLowerCase();
       let image = vims.get(key);
       if (!image) {
-        const file = VIM_FILES[key];
-        if (!file) throw new Error(`no image ${name}.vim on the disk`);
-        image = decodeVim(await read(`DATA/${file}`));
+        if (!VIMS.includes(key)) throw new Error(`no image ${name}.vim on the disk`);
+        image = await picture(read, key, 320, 200);
         vims.set(key, image);
       }
       return image;

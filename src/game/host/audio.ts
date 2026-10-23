@@ -1,5 +1,5 @@
 import type { Music, Track } from "../../audio/music.ts";
-import { AMIGA_SOUNDS, PAULA_CLOCK, type AmigaSample, type AmigaSound } from "../../formats/aga.ts";
+import { AMIGA_SOUNDS, PAULA_CLOCK, type AmigaSample, type AmigaSound } from "../../formats/sound.ts";
 
 const CHANNELS = 4;
 const PAN = [-1, 1, 1, -1]; // Paula: channels 0 and 3 left, 1 and 2 right
@@ -7,7 +7,7 @@ const MASTER = 0.5; // headroom for four full-volume channels
 
 // The game's sound driver on WebAudio: h0:1551a picks the sound, h10:37f6 starts it on the first free Paula
 // channel, h10:38dc frees a one-shot channel after its first pass. Looping sounds keep their channel until
-// sound 0 stops all channels. Music goes through chiptune3 (./src/audio/music.ts).
+// sound 0 stops all channels. Music plays the rendered songs (./src/audio/music.ts).
 export class HostAudio {
   #context: AudioContext | null = null;
   #output: GainNode | null = null;

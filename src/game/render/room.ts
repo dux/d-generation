@@ -1,4 +1,4 @@
-import { deltaSize, type DeltaSet } from "../../formats/delta.ts";
+import { drawDelta, type DeltaSet } from "../../formats/delta.ts";
 import type { Drop, Line, Room } from "../../formats/level.ts";
 import type { Palette } from "../../formats/palette.ts";
 import { frameAt, type Frame, type ShapeNode } from "../../formats/shape.ts";
@@ -19,7 +19,6 @@ const CELL = 14; // world units per cell, x doubled on screen
 const ORIGIN_X = 10; // g:872c/g:872e, set by h0:ada2
 const ORIGIN_Y = 4;
 const VIEW_BOTTOM = 181; // g:8c68: blits stop above it, plots reach it
-const BACKDROP_COLOR = 0xfc;
 
 const TILE = 32; // shape set ids: TILE [variant][slot], WALL [direction][frame], TWALL [direction][0]
 const WALL = 30;
@@ -226,63 +225,6 @@ function drawPieces(screen: Screen, room: Room, deltas: DeltaSet | undefined, ba
       if (piece.index < 0 || piece.index >= deltas.entries.length) throw new Error(`scene ${room.scene}: piece ${piece.index} outside its delta set`);
       const y = piece.y | (piece.offscreen ? 0x4000 : 0) | (piece.foreground ? 0x8000 : 0);
       drawDelta(screen, deltas.entries[piece.index], s16(piece.x), piece.foreground && piece.offscreen ? s16(y) : y & 0x7fff, backdrop);
-    }
-  }
-}
-
-// h0:11f24 drawDelta(): the DLTSET command stream of ./src/formats/delta.ts, where any command 0xc000 and up
-// ends the entry. Colour 0xfc copies the backdrop pixel at (y * 320 + x) as a sign-extended 16-bit offset
-// into the 32000-byte BACK1 buffer (h0:1221e); rows 100 and up read memory outside it, which is undefined,
-// and draw colour 0 here.
-function drawDelta(screen: Screen, entry: Uint8Array, x: number, y: number, backdrop: Uint8Array): void {
-  const { width, height } = deltaSize(entry);
-  const columns = (entry[4] & 0x80) !== 0;
-  const right = s16(x + width - 1);
-  const bottom = s16(y + height - 1);
-  let cx = x;
-  let cy = y;
-  let at = 5;
-  const word = () => {
-    const v = entry[at] | (entry[at + 1] << 8);
-    at += 2;
-    return v;
-  };
-  // h0:1221e plot, then h0:121ba advance; true once the box is exhausted.
-  const put = (color: number): boolean => {
-    if (color === BACKDROP_COLOR) {
-      const offset = s16(cy * 320 + cx);
-      color = offset >= 0 && offset < backdrop.length ? backdrop[offset] : 0;
-    }
-    screen.plot(cx, cy, color);
-    if (columns) {
-      if (++cy > bottom) {
-        cy = y;
-        if (++cx > right) return true;
-      }
-    } else if (++cx > right) {
-      cx = x;
-      if (++cy > bottom) return true;
-    }
-    return false;
-  };
-  for (;;) {
-    if (at + 2 > entry.length) throw new Error("delta runs past the end of its set");
-    const cmd = word();
-    const op = cmd & 0xe000;
-    const count = cmd & 0x1fff;
-    if (op >= 0xc000) return;
-    if (op === 0x2000 || op === 0x6000 || op === 0xa000) {
-      cx = s16(x + word());
-      cy = s16(y + entry[at++]);
-    }
-    if (op === 0x0000 || op === 0x2000) {
-      const color = entry[at++];
-      for (let i = 0; i < count && !put(color); i++);
-    } else if (op === 0x4000 || op === 0x6000) {
-      for (let i = 0; i < count && !put(entry[at + i]); i++);
-      at += count;
-    } else {
-      put(cmd & 0xff);
     }
   }
 }

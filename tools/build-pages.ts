@@ -1,6 +1,6 @@
 // Builds the playable game into ./docs, the folder GitHub Pages serves (Settings > Pages > Deploy from a branch,
-// main, /docs): ./game.html as index.html with its bundle (floors included), the cross-origin isolation service
-// worker, and only the ./amiga/aga files the game loads, found by running the browser worker's loaders against the
+// master, /docs): ./game.html as index.html with its bundle (floors included), the cross-origin isolation service
+// worker, and only the ./assets files the game loads, found by running the browser worker's loaders against the
 // repository. All URLs are relative, so the site works under https://<user>.github.io/<repo>/.
 // Usage: bun run build (commit ./docs), bun run preview to try it.
 import { copyFileSync, mkdirSync, renameSync, statSync, writeFileSync } from "node:fs";
@@ -14,19 +14,20 @@ import { loadUiAssets } from "../src/game/ui/assets.ts";
 
 const ROOT = join(import.meta.dir, "..");
 const OUT = join(ROOT, "docs");
-// Fetched by the page itself: sound effects (./src/game-page.ts) and the two modules (./src/audio/music.ts).
-const PAGE_FILES = ["amiga/aga/amiga.eff", "amiga/aga/dgen.mod", "amiga/aga/dgen2.mod"];
+// Fetched by the page itself: the two songs (./src/audio/music.ts).
+const PAGE_FILES = ["assets/music/dgen.ogg", "assets/music/dgen2.ogg"];
 const SCENES = 150;
 
 await build({
   root: ROOT,
   base: "./",
   logLevel: "warn",
-  build: { outDir: OUT, emptyOutDir: true, rollupOptions: { input: join(ROOT, "game.html") } },
+  // Code in bundle/, so it stays apart from the game data in assets/.
+  build: { outDir: OUT, emptyOutDir: true, assetsDir: "bundle", rollupOptions: { input: join(ROOT, "game.html") } },
 });
 renameSync(join(OUT, "game.html"), join(OUT, "index.html"));
 copyFileSync(join(ROOT, "src/pages/coi-sw.js"), join(OUT, "coi-sw.js"));
-// Jekyll would drop files starting with "_" (Vite's __vite-browser-external chunk).
+// Serve the files as they are, without a Jekyll pass.
 writeFileSync(join(OUT, ".nojekyll"), "");
 
 // The same loads as ./src/game/host/worker.ts, recording every path.

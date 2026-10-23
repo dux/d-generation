@@ -99,13 +99,13 @@ export function restoreGame(world: World, store: NonVolatileStore, resetGame: ()
 
 export interface GameConfig { words: number[] }
 
-// h0:c9b2 (via h0:30ec) loadConfig(): DATA/DGEN.CFG, 12 bytes into g:d980 unswapped. Word 0 values 0, 1, 2 and 4
-// and a word 3 other than 8 end the game with fatal 0x12 (h0:508: "Hardware configuration has changed!").
-export function checkConfig(bytes: Uint8Array): GameConfig {
-  if (bytes.length < 12) throw new Error("Bad or missing file DATA/DGEN.CFG");
-  const words = Array.from({ length: 6 }, (_, i) => (bytes[i * 2] << 8) | bytes[i * 2 + 1]);
-  if ([0, 1, 2, 4].includes(words[0]) || words[3] !== 8) {
+// h0:c9b2 (via h0:30ec) loadConfig(): DATA/DGEN.CFG (assets/config.json), 12 bytes into g:d980 unswapped. Word 0
+// values 0, 1, 2 and 4 and a word 3 other than 8 end the game with fatal 0x12 (h0:508: "Hardware configuration
+// has changed!").
+export function checkConfig(words: readonly number[]): GameConfig {
+  if (words.length < 6) throw new Error("Bad or missing file DATA/DGEN.CFG");
+  if ([0, 1, 2, 4].includes(words[0]!) || words[3] !== 8) {
     throw new Error("Hardware configuration has changed!\nInstall/Reinstall D/Generation.");
   }
-  return { words };
+  return { words: [...words] };
 }

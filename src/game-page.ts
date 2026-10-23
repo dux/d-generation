@@ -1,8 +1,9 @@
 // The game on its own (./game.html, the page `bun run build` ships): boots into the story, title and attract
 // like the original; a key or the fire button starts a game.
 import { Music } from "./audio/music.ts";
-import { parseAmigaEffects } from "./formats/aga.ts";
+import { readSamples } from "./formats/pack.ts";
 import { HostAudio } from "./game/host/audio.ts";
+import { gameFileReader } from "./game/host/files.ts";
 import { type AgaHandle, startAga } from "./game/host/host.ts";
 
 const SOUND_SETTING = "d-generation-aga-sound";
@@ -58,9 +59,7 @@ else if ("serviceWorker" in navigator && isSecureContext && !sessionStorage.getI
 
 try {
   status.textContent = "Loading...";
-  const effects = await fetch("amiga/aga/amiga.eff");
-  if (!effects.ok) throw new Error(`amiga.eff: HTTP ${effects.status}`);
-  audio = new HostAudio(parseAmigaEffects(new Uint8Array(await effects.arrayBuffer())), new Music(), !sound);
+  audio = new HostAudio(await readSamples(gameFileReader(document.baseURI)), new Music(), !sound);
   game = await startAga({
     canvas: $<HTMLCanvasElement>("game"),
     box: $<HTMLDivElement>("box"),

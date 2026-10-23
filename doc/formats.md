@@ -7,22 +7,40 @@ The DOS prerelease ("D-Generation V0.62 Copyright 1991", `GAME.EXE`, no longer i
 
 ## Sources
 
-`./amiga/aga/` holds the files from the two AGA disk images in `./amiga-src/`, unpacked once with amitools and merged into one folder:
+`./amiga/aga/` holds the files from the two AGA disk images in `./amiga/adf/`, unpacked once with amitools and merged into one folder:
 
 ```sh
-uvx --from amitools xdftool "amiga-src/D-Generation (AGA)_Disk1.adf" unpack tmp/aga1   # repeat for disk 2
+uvx --from amitools xdftool "amiga/adf/D-Generation (AGA)_Disk1.adf" unpack tmp/aga1   # repeat for disk 2
 ```
+
+`./amiga/` is git-ignored.
+A copy lives only on the local orphan branch `src` (a pre-push hook refuses to push it); `git restore --source=src --worktree -- amiga` brings it back.
 
 ## Tools
 
 * `bun dev` starts the page: Play (the native game), and a viewer for rooms, sprite sheets and delta sets.
-* `bun run extract:aga` writes sprite and delta sheets, images, palettes and WAVs to `./out/aga/`.
+* `bun run extract:assets` converts everything the game loads into `./assets` (below); the game never reads `./amiga/aga`.
 * `bun run extract:levels` turns the level packs into `./levels/floorNN.json5` and checks the round trip.
-* `bun tools/extract-cd32-pictures.ts` writes the two pictures that exist only inside the executable to `./data/` as chunky palette indexes, one byte per pixel: `cd32-keyboard.bin` (219x69, the on-screen keyboard at the start of hunk 9) and `cd32-padmenu.bin` (271x26, the CD32 pad menu at `h9:3e60`); each is 8 bitplanes there, most significant bit leftmost.
-  The game reads these files, so it never loads the executable itself.
 * `bun run truth:aga-rooms` draws every room with the original code in the harness (`./out/aga-truth/rooms/`); `bun run verify:aga-rooms` compares `./src/game/render/room.ts` with those captures.
 
-`./src/formats/aga.ts` has the AGA decoders, `./src/formats/level.ts` the level format, `./src/formats/delta.ts` and `./src/formats/palette.ts` the formats shared with DOS.
+`./tools/formats/` has the decoders of the original formats (used by the tools only), `./src/formats/` the formats the game reads: `level.ts`, `pack.ts` (`./assets`), `png.ts`, `delta.ts`, `palette.ts`, `sound.ts`.
+
+## Converted assets - `./assets`
+
+`./tools/extract-assets.ts` writes them and reads every file back through `./src/formats/pack.ts`, comparing it with the original decode; it needs ffmpeg with libopus.
+
+| File | From | Format |
+|---|---|---|
+| `sprites/<bank>.png`, `.json` | `aga/<bank>.aga` | atlas PNG, grey = palette index, alpha = mask; JSON `sets` (id, tree of frame indexes) and `frames` (`[atlas x, atlas y, width, height, frame x, frame y]`) |
+| `deltas/dltset<n>.png`, `.json` | `DATA/DLTSET<n>.DAT` | the pixels each entry's commands write, as a grey + alpha atlas; JSON `entries` (`[atlas x, atlas y, width, height, dx, dy]`, the offset from the drawing position) |
+| `images/<name>.png` | `*.vim`, `BACK1.DAT`, executable hunk 9 | grey PNG of palette indexes: the 12 pictures by game name, `backdrop` (320x100), `cd32-keyboard` (219x69), `cd32-padmenu` (271x26) |
+| `palettes.json` | `DATA/*.PAL` | 6-bit components by lower-case file name |
+| `sounds/sampleNN.wav` | `amiga.eff` | 8-bit unsigned mono; the playback rate comes from the sound table |
+| `music/<track>.ogg` | `dgen.mod`, `dgen2.mod` | one pass rendered with libopenmpt (chiptune3) at 48 kHz, Opus 96 kbit/s; the game loops it |
+| `demos/demo<n>.json` | `DATA/DEMO<n>.SEQ` | `directions` (`time`, `direction`, `magnitude`) and `buttons` (`time`, `code`) |
+| `config.json` | `DATA/DGEN.CFG` | its six big-endian words |
+
+The browser decodes the PNGs itself (`./src/formats/png.ts`), because canvas decoding would turn indexes into colours.
 
 ## Levels - `DATA/L1..L10.SCN`, `DATA/MAPMTX0..2.DAT`
 
@@ -115,7 +133,7 @@ The scheme is not reset before drawing, so a room without a scheme-setting wall 
 `amiga.eff` is 202020 bytes of signed 8-bit samples without a header, loaded whole by `h0:c6f8`.
 The executable holds the sample table at `h11:45e6` (30 entries of `length dword, offset dword`) and the sound table at `h11:44f6` (6-byte records `id, sample, oneShot, 0, period word`, ended by a negative id; 39 sounds).
 `h0:1551a` plays a sound on Paula at volume 63 and `3546895 / period` Hz; only sounds 33 and 48 loop.
-`dgen.mod` and `dgen2.mod` are OctaMED `MMD1` songs, played in the browser through chiptune3 (libopenmpt).
+`dgen.mod` and `dgen2.mod` are OctaMED `MMD1` songs, played from their Opus renders in `./assets/music`.
 The modules and `amiga.eff` share one buffer: `dgen.mod` plays on the first title pass, `amiga.eff` is loaded for every demo and game, and `dgen2.mod` plays in the good ending.
 
 ## Other files

@@ -1,15 +1,10 @@
-/// <reference types="vite/client" />
-// chiptune3's own player resolves its worklet relative to import.meta.url, which breaks once Vite
-// prebundles/bundles it, so we drive its libopenmpt worklet directly. `?worker&url` bundles the worklet
-// with its libopenmpt import (wasm is embedded); production builds need `worker.format: "es"`, since the
-// default iife output rewrites import.meta.url to self.location, which doesn't exist in worklet scope.
-import workletUrl from "chiptune3/chiptune3.worklet.js?worker&url";
-
+// The two OctaMED songs, rendered once to assets/music/<track>.ogg (Opus) by ./tools/extract-assets.ts and looped.
 export type Track = "dgen" | "dgen2";
 
 export class Music {
   #context: AudioContext | null = null;
-  #node: Promise<AudioWorkletNode> | null = null;
+  #buffers = new Map<Track, Promise<AudioBuffer>>();
+  #source: AudioBufferSourceNode | null = null;
   #track: Track | null = null;
 
   get track(): Track | null {
@@ -17,46 +12,39 @@ export class Music {
   }
 
   async play(track: Track): Promise<void> {
+    this.#stopSource();
     this.#track = track;
     // Created synchronously, so a click handler's gesture unlocks it; game cues create it before any gesture and resume() unlocks it.
-    if (!this.#node) {
-      this.#context = new AudioContext();
-      this.#node = createNode(this.#context);
-    }
-    const [node, song] = await Promise.all([this.#node, fetchSong(track)]);
-    if (this.#track !== track) return; // superseded by a later play() or stop()
-    // The worklet replaces any current song and loops forever (repeatCount -1 by default).
-    node.port.postMessage({ cmd: "play", val: song }, [song]);
+    const context = (this.#context ??= new AudioContext());
+    let buffer = this.#buffers.get(track);
+    if (!buffer) this.#buffers.set(track, (buffer = fetchSong(context, track)));
+    const song = await buffer;
+    if (this.#track !== track || this.#source) return; // superseded by a later play() or stop()
+    const source = new AudioBufferSourceNode(context, { buffer: song, loop: true });
+    source.connect(context.destination);
+    source.start();
+    this.#source = source;
   }
 
   stop(): void {
     this.#track = null;
-    this.#node?.then((node) => node.port.postMessage({ cmd: "stop" }));
+    this.#stopSource();
   }
 
   // Unlocks a context created before the page had a user gesture; call from a key or click handler.
   resume(): void {
     void this.#context?.resume();
   }
+
+  #stopSource(): void {
+    this.#source?.stop();
+    this.#source?.disconnect();
+    this.#source = null;
+  }
 }
 
-async function createNode(context: AudioContext): Promise<AudioWorkletNode> {
-  await context.audioWorklet.addModule(workletUrl);
-  const node = new AudioWorkletNode(context, "libopenmpt-processor", {
-    numberOfInputs: 0,
-    numberOfOutputs: 1,
-    outputChannelCount: [2],
-  });
-  // Also drains the per-quantum position messages the worklet posts.
-  node.port.onmessage = ({ data }) => {
-    if (data.cmd === "err") console.error(`libopenmpt error: ${data.val}`);
-  };
-  node.connect(context.destination);
-  return node;
-}
-
-async function fetchSong(track: Track): Promise<ArrayBuffer> {
-  const response = await fetch(`amiga/aga/${track}.mod`); // relative to the page
-  if (!response.ok) throw new Error(`Failed to load ${track}.mod: ${response.status}`);
-  return response.arrayBuffer();
+async function fetchSong(context: AudioContext, track: Track): Promise<AudioBuffer> {
+  const response = await fetch(`assets/music/${track}.ogg`); // relative to the page
+  if (!response.ok) throw new Error(`Failed to load ${track}.ogg: ${response.status}`);
+  return context.decodeAudioData(await response.arrayBuffer());
 }

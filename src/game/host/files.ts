@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 // The native game's disk reads in the browser: floors from the bundled ./levels, the rest fetched from ./amiga
 // relative to the page (`base`, the page's document.baseURI), so the game runs from any folder of a host.
 export const FLOOR_FILES = import.meta.glob<string>("../../../levels/floor*.json5", { query: "?raw", import: "default" });

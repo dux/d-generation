@@ -1,4 +1,4 @@
-import { drawDelta, deltaSize, type DeltaSet } from "../formats/delta.ts";
+import { drawDelta, type DeltaSet } from "../formats/delta.ts";
 import { allFrames, type ShapeNode } from "../formats/shape.ts";
 import { Screen } from "./screen.ts";
 
@@ -59,19 +59,11 @@ export function shapeSheet(root: ShapeNode[], maxWidth = 320): Sheet {
   );
 }
 
-// Entries that fail to decode (DLTSET99 ends with stray offsets) are left out; labels keep the entry index.
+// Delta images by entry index; empty entries are left out.
 export function deltaSheet(set: DeltaSet, maxWidth = 480): Sheet {
-  const decodes = (entry: Uint8Array) => {
-    try {
-      drawDelta(new Screen(), entry, 0, 0);
-      return true;
-    } catch {
-      return false;
-    }
-  };
   return buildSheet(
     set.entries.flatMap((entry, i) =>
-      decodes(entry) ? [{ label: String(i), ...deltaSize(entry), draw: (screen: Screen, x: number, y: number) => drawDelta(screen, entry, x, y) }] : [],
+      entry.width ? [{ label: String(i), width: entry.width, height: entry.height, draw: (screen: Screen, x: number, y: number) => drawDelta(screen, entry, x - entry.dx, y - entry.dy) }] : [],
     ),
     maxWidth,
   );

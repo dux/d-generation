@@ -1,4 +1,4 @@
-// Sprite frames and the shape-set tree shared by the sprite banks (`aga/*.aga`, parsed by ./src/formats/aga.ts):
+// Sprite frames and the shape-set tree of the sprite banks (assets/sprites, read by ./src/formats/pack.ts):
 // every inner node is a list of children, every leaf a frame.
 
 export interface Frame {
@@ -7,7 +7,7 @@ export interface Frame {
   width: number;
   height: number;
   pixels: Uint8Array;
-  // AGA frames (./src/formats/aga.ts): 1 = opaque. Without a mask, color 0 is transparent.
+  // 1 = opaque. Without a mask, color 0 is transparent.
   mask?: Uint8Array;
 }
 
