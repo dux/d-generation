@@ -2,6 +2,8 @@
 
 **[Play it in your browser](https://dux.github.io/d-generation/)** - the GitHub Pages build of `./docs`, no install, keyboard or gamepad.
 
+Made for fast nostalgia re-run, with added unlimited lives and save/restore. Amiga lives forever!
+
 | | |
 |---|---|
 | ![Floor 84, blue scheme](./doc/screenshots/scene85.png) | ![Floor 89, the rooftop](./doc/screenshots/scene145.png) |
