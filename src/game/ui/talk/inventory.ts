@@ -12,7 +12,8 @@ const SLOT_Y = 0xaa, SLOT_COLOR = 0x95, SELECTED_COLOR = 0x67, COUNT_COLOR = 0x6
 // g:948: x/y offsets in front of an actor per facing (h0:5518).
 const AHEAD = [-6, 0, -4, 4, 0, 6, 4, 4, 6, 0, 4, -4, 0, -6, -4, -4];
 
-// Item ids index g:85dd: portable laser, freezer, shield, barrier, the package.
+// Item ids index g:85dd: bomb ("1 Bomb!" pickups, kept in `portableLaserCount`), freezer, shield, barrier ("1 Barrier!"
+// pickups, kept in `carriedBombs`), the package.
 function itemCount(game: Game, id: number): number {
   const s = game.state;
   const counts = [s.portableLaserCount, s.slowMotionCount, s.shieldCount, s.carriedBombs, s.inventoryAvailability];

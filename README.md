@@ -2,7 +2,7 @@
 
 **[Play it in your browser](https://dux.github.io/d-generation/)** - the GitHub Pages build of `./docs`, no install, keyboard or gamepad.
 
-Made for fast nostalgia re-run, with added unlimited lives and save/restore. Amiga lives forever!
+Made for fast nostalgia re-run, with added unlimited lives, save/restore and an Enhanced 2x view. Amiga lives forever!
 
 | | |
 |---|---|
@@ -35,15 +35,18 @@ Full details: `./doc/porting.md` (architecture, rules, verification status, know
 
 ## Added in this port
 
-Three features that are not in the original game, added by Dino Reic ([@dux](https://github.com/dux)).
+Five additions to the original game, added by Dino Reic ([@dux](https://github.com/dux)).
 All live in the browser host; the ported game code stays exactly as in the executable.
 
 * **Save / restore anywhere:** F5 / F9, or the Save / Restore buttons in the header, save and restore the full game state at any moment (kept in IndexedDB).
   The original checkpoint saves (Alt+S / Alt+R) still work as before.
 * **Unlimited lives:** after every main-loop pass the host sets the lives counter back to 5, so you never get a game over.
+* **Restart level button:** asks first, then sends the original game's Ctrl+R, its own restart from the floor checkpoint (the same restart as losing your last life): back to where you arrived on the current floor, with every room of the floor reloaded.
+  The key itself is mostly out of reach in a browser, which reloads the page on Ctrl+R.
 * **Enhanced view:** the Enhanced button doubles the picture to 640x400 with Hyllian's xBR-lv2-noblend on the GPU (WebGL2) before it is scaled to the window.
   It follows 1:1 and 2:1 edges, so diagonal lines get even steps at the doubled resolution, and every new pixel takes one of its neighbours' colours: no blur, no new colours.
   Off by default; the setting is remembered.
+* **River's shield up front:** River in scene 75 hands over her shield as soon as you start talking to her, once, instead of only after one particular chain of answers.
 
 ## How each part was ported
 
@@ -93,19 +96,36 @@ The game runs in a module Worker on shared memory, so it needs cross-origin isol
 * All other keys are passed through as Amiga raw key codes, so the original keyboard controls work as in the manual.
 * Gamepad: stick or d-pad moves, button 0 fires, button 1 uses.
 * Terminal prompts: just type; the host drives the CD32 on-screen keyboard for you (Enter = RET, Backspace = DEL).
+* Space (or gamepad button 1): the laser, which bounces off walls and triggers switches.
+* T (or gamepad button 0): throw a grenade the way you face; you need grenades picked up on the way (S shows how many).
+* Enter: talk to the survivor in front of you; up / down picks an answer, Enter takes it, and the conversation goes on until you leave it with Esc (or gamepad button 0).
+* U: the inventory; left / right picks an item, Enter (or gamepad button 1) uses it, Esc or U closes it.
+  Only items you have are shown: bomb, freezer, shield, barrier and the package; a placed bomb blasts doors.
 * Alt+S / Alt+R: the original checkpoint save and restore (kept in localStorage).
 * F5 / F9, or the Save / Restore buttons: save states (kept in IndexedDB).
+* Restart level button (the original Ctrl+R): back to where you arrived on the current floor, after a confirmation.
 * Enhanced button: twice the pixel density (xBR-lv2-noblend) on or off.
 * Ctrl+B: the original CD32 menu.
 
 ### Passwords
 
-Computer terminal credentials are:
+The terminal in scene 23 (building floor 81) asks for a user name and passcode; Seth, the survivor in scene 4, gives them away:
 
 * Username: `Seth`
 * Password: `Ostrich`
 
-For a later computer terminal, use `Pestilence` as the password.
+The entrance-code terminal in scene 82 (building floor 84) has no fixed password.
+Its code is one of the four horsemen, `War`, `Death`, `Pestilence` or `Famine`, picked when the title screen last ran, and John of Maryland in scene 84 tells you which one ("I am the bringer of ...").
+In this port a game started right after loading the page uses `Death`; a game started after going back to the title screen uses `War`.
+
+The exit control terminal in scene 121 (building floor 89) needs no typing; it only shows "Passcode 'REGENERATION' has been entered.  Exit door is now open."
+
+### Hints
+
+River, the survivor in scene 75 (building floor 85), gives you a shield ("some sort of personal barrier").
+She stays seated until her room is secured (blob dead, vent sealed) and she can see you; then Enter starts the conversation and the shield is yours (see "Added in this port").
+In the original she only gives it for `No.`, then `No, you aren't fat.`, then `OK!  OK!  You're fat and ugly!`; that path still adds one more.
+Restart level reloads the floor and with it River.
 
 ## Repository layout
 

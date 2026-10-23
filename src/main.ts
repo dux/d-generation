@@ -73,6 +73,7 @@ const paletteSelect = $<HTMLSelectElement>("palette");
 const musicButton = $<HTMLButtonElement>("music");
 const saveButton = $<HTMLButtonElement>("save");
 const restoreButton = $<HTMLButtonElement>("restore");
+const restartButton = $<HTMLButtonElement>("restart");
 const enhancedButton = $<HTMLButtonElement>("enhanced");
 const canvas = $<HTMLCanvasElement>("view");
 const agaBox = $<HTMLDivElement>("aga-box");
@@ -261,7 +262,7 @@ async function selectMode(next: Mode, item?: string) {
   agaBox.hidden = !playing;
   canvas.hidden = playing;
   paletteSelect.hidden = playing;
-  saveButton.hidden = restoreButton.hidden = !playing;
+  saveButton.hidden = restoreButton.hidden = restartButton.hidden = !playing;
   showAga(playing, item);
   applyEnhanced();
   if (playing) return;
@@ -304,6 +305,10 @@ saveButton.addEventListener("click", () => {
 restoreButton.addEventListener("click", () => {
   restoreButton.blur();
   aga?.restore();
+});
+restartButton.addEventListener("click", () => {
+  restartButton.blur();
+  if (aga && confirm("Restart this level? You go back to where you arrived on this floor.")) aga.restartLevel();
 });
 enhancedButton.addEventListener("click", () => {
   enhancedButton.blur();

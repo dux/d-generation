@@ -8,8 +8,9 @@ import { roomImage } from "../render/room.ts";
 import { loadUiAssets } from "../ui/assets.ts";
 import { drawPadMenu } from "../ui/padmenu-render.ts";
 import { renderScreen } from "../ui/render.ts";
+import type { Talker } from "../ui/talk/talk.ts";
 import { gameFileReader } from "./files.ts";
-import { PadTypist } from "./typing.ts";
+import { keyboardShown, PadTypist } from "./typing.ts";
 import {
   FRAME, HEIGHT, JOY, KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE, RESTORE, SAVE, SLEEP, TYPED, WIDTH,
   type PageMessage, type WorkerMessage,
@@ -19,6 +20,10 @@ const TICK_MS = 20; // PAL vblank
 const MAX_LAG_MS = 250; // further behind (background tab, slow pass) the clock jumps instead of catching up
 const LIVES = 5; // a new game's lives (h0:e4e)
 const SCENES = 150;
+// River in scene 75 gives her shield ("_21" on her topic 9) only at the end of one answer path; the browser hands it
+// over as soon as a conversation with her starts. Her asked-topics word (+d0) records topic 9, so it happens once.
+const RIVER_SCENE = 75;
+const RIVER_GIFT_TOPIC = 9;
 
 function post(message: WorkerMessage): void {
   postMessage(message);
@@ -117,11 +122,20 @@ async function run(start: Extract<PageMessage, { type: "start" }>): Promise<void
     }
   };
 
+  const giveRiverGift = () => {
+    const state = game.state, talker = state.talk.talker as Talker | null;
+    if (!state.talking || game.room.scene !== RIVER_SCENE || !talker?.surProfile) return;
+    if (talker.surAsked & (1 << RIVER_GIFT_TOPIC)) return;
+    talker.surAsked = (talker.surAsked | (1 << RIVER_GIFT_TOPIC)) >>> 0;
+    state.shieldCount = (state.shieldCount + 1) & 0xff;
+  };
+
   let next = performance.now();
   const typist = new PadTypist();
   game.onTick = () => {
     if (Atomics.load(ctrl, RESTORE)) throw new GameInterrupt("restore requested");
-    const typing = !!game.state.input.textEntry;
+    giveRiverGift();
+    const typing = keyboardShown(game);
     const rawKeyEvents: { key: number; down: boolean }[] = [];
     while (Atomics.load(ctrl, KEYS_READ) !== Atomics.load(ctrl, KEYS_WRITTEN)) {
       const read = Atomics.load(ctrl, KEYS_READ);

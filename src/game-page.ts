@@ -12,6 +12,7 @@ const ENHANCED_SETTING = "d-generation-aga-enhanced";
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const saveButton = $<HTMLButtonElement>("save");
 const restoreButton = $<HTMLButtonElement>("restore");
+const restartButton = $<HTMLButtonElement>("restart");
 const enhancedButton = $<HTMLButtonElement>("enhanced");
 const soundButton = $<HTMLButtonElement>("sound");
 const stopped = $<HTMLDivElement>("stopped");
@@ -43,6 +44,11 @@ saveButton.addEventListener("click", () => {
 restoreButton.addEventListener("click", () => {
   restoreButton.blur();
   game?.restore();
+});
+// Restarting throws away everything since the floor was entered, so it asks first.
+restartButton.addEventListener("click", () => {
+  restartButton.blur();
+  if (game && confirm("Restart this level? You go back to where you arrived on this floor.")) game.restartLevel();
 });
 soundButton.addEventListener("click", () => {
   soundButton.blur();

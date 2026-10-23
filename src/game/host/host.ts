@@ -32,6 +32,7 @@ export interface AgaHandle {
   stop(): void;
   save(): void; // F5: save state after the current main-loop pass
   restore(): void; // F9: back to the last saved state
+  restartLevel(): void; // Ctrl+R, the original restart from the floor's checkpoint (where you arrived on it)
   setEnhanced(on: boolean): boolean; // xBR view (./xbr.ts) on or off; false when the browser has no WebGL2
 }
 
@@ -74,7 +75,7 @@ function snapshotRequest<T>(db: IDBDatabase, mode: IDBTransactionMode, run: (sto
 export async function startAga(options: AgaHostOptions): Promise<AgaHandle> {
   if (!crossOriginIsolated) throw new Error("the page needs cross-origin isolation (COOP/COEP headers) for SharedArrayBuffer");
   const { canvas, box, audio, onStatus } = options;
-  const help = `${options.demo ? "Title" : "New game"} - arrows/keypad move, Esc pause, F5 save state, F9 restore state`;
+  const help = `${options.demo ? "Title" : "New game"} - arrows move, Space laser, T grenade, U inventory, Enter talk, Esc pause, F5 save, F9 restore`;
   const control = new SharedArrayBuffer(CONTROL_INTS * 4);
   const frame = new SharedArrayBuffer(FRAME_BYTES);
   const ctrl = new Int32Array(control);
@@ -219,16 +220,20 @@ export async function startAga(options: AgaHostOptions): Promise<AgaHandle> {
 
   const save = () => Atomics.store(ctrl, SAVE, 1);
   const restore = () => restoreState().catch((error) => status(`restore failed: ${error}`));
-  input = new HostInput(
-    (raw) => {
-      const written = Atomics.load(ctrl, KEYS_WRITTEN);
-      if (written - Atomics.load(ctrl, KEYS_READ) >= KEY_RING_SIZE) return;
-      ctrl[KEY_RING + (written % KEY_RING_SIZE)] = raw;
-      Atomics.store(ctrl, KEYS_WRITTEN, written + 1);
-    },
-    { F5: save, F9: () => void restore() },
-    () => audio.unlock(),
-  );
+  // Raw key codes into the shared ring the worker reads (bit 7 = release).
+  const sendKey = (raw: number) => {
+    const written = Atomics.load(ctrl, KEYS_WRITTEN);
+    if (written - Atomics.load(ctrl, KEYS_READ) >= KEY_RING_SIZE) return;
+    ctrl[KEY_RING + (written % KEY_RING_SIZE)] = raw;
+    Atomics.store(ctrl, KEYS_WRITTEN, written + 1);
+  };
+  input = new HostInput(sendKey, { F5: save, F9: () => void restore() }, () => audio.unlock());
+  // Ctrl (raw 0x63) + R (raw 0x13) translates to 0x12, which h0:31c0 answers with the checkpoint restart (h0:d0c):
+  // back to where the player arrived on the floor, every room of it reloaded. Browsers keep Ctrl+R for reloading.
+  const restartLevel = () => {
+    for (const raw of [0x63, 0x13, 0x93, 0xe3]) sendKey(raw);
+    status("level restarted");
+  };
 
   onStatus("Loading...");
   postToWorker({ type: "start", demo: options.demo, base: document.baseURI, control, frame, nonvolatile: savedItems() });
@@ -245,5 +250,5 @@ export async function startAga(options: AgaHostOptions): Promise<AgaHandle> {
     animation = requestAnimationFrame(draw);
   };
   animation = requestAnimationFrame(draw);
-  return { stop, save, restore: () => void restore(), setEnhanced };
+  return { stop, save, restore: () => void restore(), restartLevel, setEnhanced };
 }

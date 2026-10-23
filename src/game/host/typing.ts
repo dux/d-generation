@@ -9,6 +9,18 @@ const GAME_CONTROLLER = 0x10000000;
 const RIGHT = 1, LEFT = 2, DOWN = 4, UP = 8, RED = 1 << 22;
 const PRESS_TICKS = 6; // the keyboard polls the pad every 5 vblanks (Delay(5) at h0:14ed8)
 
+// The on-screen keyboard is up between its "keyboard" and "unkeyboard" display operations (h0:14d1a modes 0 and 2).
+// Conversation menus and the inventory also set text entry (g:3ff4) but read the keys themselves.
+export function keyboardShown(game: Game): boolean {
+  const display = game.state.talk.display;
+  for (let i = display.length - 1; i >= 0; i--) {
+    const op = display[i]!.op;
+    if (op === "keyboard") return true;
+    if (op === "unkeyboard") return false;
+  }
+  return false;
+}
+
 export class PadTypist {
   private readonly queue: number[] = [];
   private pressed = 0;
