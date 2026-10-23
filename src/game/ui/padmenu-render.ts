@@ -1,38 +1,15 @@
 import type { Screen } from "../../render/screen.ts";
 import type { GameState } from "../core/model.ts";
 
-const WIDTH = 271, HEIGHT = 26, ROW = 34;
+// The CD32 pad menu picture (h0:14792: g:df34's planes at h9:3e60): chunky palette indexes extracted from the
+// executable by ./tools/extract-cd32-pictures.ts.
+export const PAD_MENU_WIDTH = 271, PAD_MENU_HEIGHT = 26;
+export const PAD_MENU_FILE = "data/cd32-padmenu.bin";
+const WIDTH = PAD_MENU_WIDTH, HEIGHT = PAD_MENU_HEIGHT;
 
-// h0:14792: g:df34's planes point at h9:3e60 + plane * 884.
-export function decodePadMenu(file: Uint8Array): Uint8Array {
-  const view = new DataView(file.buffer, file.byteOffset, file.byteLength);
-  let at = 0;
-  const long = () => { const value = view.getUint32(at); at += 4; return value; };
-  if (long() !== 0x3f3 || long() !== 0) throw new Error("not an AmigaDOS load file");
-  const count = long();
-  at += 8 + count * 4;
-  for (let hunk = 0; hunk < count;) {
-    const type = long() & 0x3fffffff;
-    if (type === 0x3e9 || type === 0x3ea) {
-      const size = long() * 4;
-      if (hunk === 9) {
-        const start = at + 0x3e60, planeSize = ROW * HEIGHT;
-        if (0x3e60 + planeSize * 8 > size) throw new Error("short pad menu planes");
-        const pixels = new Uint8Array(WIDTH * HEIGHT);
-        for (let p = 0; p < 8; p++) for (let y = 0; y < HEIGHT; y++) for (let x = 0; x < WIDTH; x++) {
-          if (file[start + p * planeSize + y * ROW + (x >> 3)]! & (0x80 >> (x & 7))) pixels[y * WIDTH + x] |= 1 << p;
-        }
-        return pixels;
-      }
-      at += size;
-    } else if (type === 0x3eb) at += 4;
-    else if (type === 0x3ec) { for (let n = long(); n; n = long()) at += 4 + n * 4; }
-    else if (type === 0x3f0) { for (let n = long(); n; n = long()) at += n * 4 + 4; }
-    else if (type === 0x3f1) at += long() * 4;
-    else if (type === 0x3f2) hunk++;
-    else throw new Error(`unsupported hunk block ${type.toString(16)}`);
-  }
-  throw new Error("load file has no pad menu hunk");
+export function parsePadMenu(bytes: Uint8Array): Uint8Array {
+  if (bytes.length !== WIDTH * HEIGHT) throw new Error(`${PAD_MENU_FILE} holds ${bytes.length} bytes`);
+  return bytes;
 }
 
 // h0:151a4 saves the underlying display; h0:153ec/15452 invert the selected rectangle with minterm 0x50.

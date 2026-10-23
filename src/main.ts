@@ -41,7 +41,7 @@ let viewerData: Promise<{ assets: AgaAssets; floors: Floor[] }> | null = null;
 function loadViewerData() {
   viewerData ??= (async () => {
     const assets = loadAgaAssets(async (path) => {
-      const res = await fetch(`amiga/aga/${path}`);
+      const res = await fetch(path);
       if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
       return new Uint8Array(await res.arrayBuffer());
     });

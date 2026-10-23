@@ -15,7 +15,7 @@ import { compareScreen, readCapture, writeDiff, type Picture } from "./verify-ui
 
 const read = async (path: string) => new Uint8Array(readFileSync(path));
 const ui = await loadUiAssets(read);
-const assets = await loadAgaAssets(path => read(`amiga/aga/${path}`));
+const assets = await loadAgaAssets(read);
 const dir = "tmp/uiflow3-pixels";
 mkdirSync(dir, { recursive: true });
 let failures = 0;

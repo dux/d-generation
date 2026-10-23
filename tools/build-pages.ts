@@ -37,7 +37,7 @@ const read = async (path: string) => {
 };
 const [, assets] = await Promise.all([
   createGame(read, { demo: true }),
-  loadAgaAssets((path) => read(`amiga/aga/${path}`)),
+  loadAgaAssets(read),
   loadUiAssets(read),
 ]);
 for (let scene = 1; scene <= SCENES; scene++) {

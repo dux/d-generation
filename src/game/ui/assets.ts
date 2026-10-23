@@ -2,7 +2,7 @@ import { decodeVim, parseAgaShapeFile } from "../../formats/aga.ts";
 import { parseDeltaSet, type DeltaSet } from "../../formats/delta.ts";
 import type { ShapeNode } from "../../formats/shape.ts";
 import { GAME_FONT } from "../render/gfx.ts";
-import { decodePadMenu } from "./padmenu-render.ts";
+import { PAD_MENU_FILE, parsePadMenu } from "./padmenu-render.ts";
 
 // Pictures of the title, attract, terminal, bombed and ending screens, decoded from ./amiga/aga.
 // read() takes paths relative to the repository root.
@@ -27,7 +27,7 @@ export interface UiAssets {
   palettes: Map<string, Uint8Array>; // lower-case file name -> raw 6-bit RGB bytes
   deltaSets: Map<number, DeltaSet>;
   font: ShapeNode[]; // g:dcbc glyphs, shape set 36 of b1.aga, frame = code - 32
-  padMenu: Uint8Array; // h9:3e60, 271x26 chunky
+  padMenu: Uint8Array; // 271x26 chunky (./data/cd32-padmenu.bin)
 }
 
 export function uiVim(assets: UiAssets, name: string): Uint8Array {
@@ -46,14 +46,14 @@ export async function loadUiAssets(read: (path: string) => Promise<Uint8Array>):
   const vims = new Map<string, Uint8Array>();
   const palettes = new Map<string, Uint8Array>();
   const deltaSets = new Map<number, DeltaSet>();
-  const [, , , sets, executable] = await Promise.all([
+  const [, , , sets, padMenu] = await Promise.all([
     Promise.all(Object.entries(VIMS).map(async ([name, file]) => vims.set(name, decodeVim(await read(`${DATA}/${file}`))))),
     Promise.all(Object.entries(PALETTES).map(async ([name, file]) => palettes.set(name, await read(`${DATA}/${file}`)))),
     Promise.all(DELTA_SETS.map(async (n) => deltaSets.set(n, parseDeltaSet(await read(`${DATA}/DLTSET${n}.DAT`))))),
     read("amiga/aga/aga/b1.aga").then(parseAgaShapeFile),
-    read("amiga/aga/dgen"),
+    read(PAD_MENU_FILE),
   ]);
   const font = sets.find((set) => set.id === GAME_FONT.set)?.root;
   if (!font) throw new Error(`b1.aga has no shape set ${GAME_FONT.set}`);
-  return { vims, palettes, deltaSets, font, padMenu: decodePadMenu(executable) };
+  return { vims, palettes, deltaSets, font, padMenu: parsePadMenu(padMenu) };
 }

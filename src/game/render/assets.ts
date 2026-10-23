@@ -1,10 +1,11 @@
 import { decodeVim, parseAgaShapeFile, parseAmigaEffects, unlzw, VIM_WIDTH, type AmigaSample } from "../../formats/aga.ts";
-import { decodeKeyboard } from "../ui/terminal/keyboard.ts";
+import { KEYBOARD_FILE, parseKeyboard } from "../ui/terminal/keyboard.ts";
 import { parseDeltaSet, type DeltaSet } from "../../formats/delta.ts";
 import { parsePalette, type Palette } from "../../formats/palette.ts";
 import type { ShapeNode } from "../../formats/shape.ts";
 
-// Graphics and sound of the AGA release, decoded from ./amiga/aga (paths below are relative to it).
+// Graphics and sound of the AGA release, decoded from ./amiga/aga, plus the keyboard picture ./tools/extract-cd32-
+// pictures.ts took out of the executable. readFile() takes paths relative to the repository root.
 
 // Sprite banks by the names the executable loads them under (h0:278). B1, INVEN, ANM, DOOR and DOOR2 stay
 // resident (g:55c); the player bank is one of PLY/SHPLY (g:172, h0:6a0) and the object bank group one of
@@ -45,7 +46,8 @@ export interface AgaAssets {
   vim(name: string): Promise<Uint8Array>;
 }
 
-export async function loadAgaAssets(read: (path: string) => Promise<Uint8Array>): Promise<AgaAssets> {
+export async function loadAgaAssets(readFile: (path: string) => Promise<Uint8Array>): Promise<AgaAssets> {
+  const read = (path: string) => readFile(`amiga/aga/${path}`);
   const banks = new Map<string, Map<number, ShapeNode[]>>();
   await Promise.all(
     BANKS.map(async (name) => {
@@ -87,7 +89,7 @@ export async function loadAgaAssets(read: (path: string) => Promise<Uint8Array>)
     deltaSets,
     palettes,
     backdrop,
-    keyboard: decodeKeyboard(await read("dgen")),
+    keyboard: parseKeyboard(await readFile(KEYBOARD_FILE)),
     sounds: parseAmigaEffects(await read("amiga.eff")),
     vims,
     async vim(name: string) {

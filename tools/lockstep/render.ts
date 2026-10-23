@@ -26,7 +26,7 @@ if (from !== undefined) {
   for await (const truth of readTruth(truthPath)) if (truth.record.frame === from) { game = await importGame(read, truth, layouts); break; }
   if (!game) throw new Error(`capture has no frame ${from}`);
 } else game = await createGame(read, { demo: true, scene });
-const assets = await loadAgaAssets(path => read(`amiga/aga/${path}`));
+const assets = await loadAgaAssets(read);
 const screen = new Screen();
 await mkdir("out/native", { recursive: true });
 const prefix = from !== undefined ? `import${from}-` : scene === undefined ? "" : `scene${scene}-`;

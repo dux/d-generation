@@ -17,7 +17,7 @@ const TRUTH = join(ROOT, "out", "aga-truth", "rooms");
 const OUT = join(ROOT, "out", "aga", "rooms");
 mkdirSync(OUT, { recursive: true });
 
-const read = async (path: string) => new Uint8Array(await Bun.file(join(ROOT, "amiga", "aga", path)).arrayBuffer());
+const read = async (path: string) => new Uint8Array(await Bun.file(join(ROOT, path)).arrayBuffer());
 const bytes = async (name: string) => new Uint8Array(await Bun.file(join(TRUTH, name)).arrayBuffer());
 const assets = await loadAgaAssets(read);
 const captures: Capture[] = await Bun.file(join(TRUTH, "rooms.json")).json();

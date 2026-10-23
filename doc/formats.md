@@ -18,6 +18,8 @@ uvx --from amitools xdftool "amiga-src/D-Generation (AGA)_Disk1.adf" unpack tmp/
 * `bun dev` starts the page: Play (the native game), and a viewer for rooms, sprite sheets and delta sets.
 * `bun run extract:aga` writes sprite and delta sheets, images, palettes and WAVs to `./out/aga/`.
 * `bun run extract:levels` turns the level packs into `./levels/floorNN.json5` and checks the round trip.
+* `bun tools/extract-cd32-pictures.ts` writes the two pictures that exist only inside the executable to `./data/` as chunky palette indexes, one byte per pixel: `cd32-keyboard.bin` (219x69, the on-screen keyboard at the start of hunk 9) and `cd32-padmenu.bin` (271x26, the CD32 pad menu at `h9:3e60`); each is 8 bitplanes there, most significant bit leftmost.
+  The game reads these files, so it never loads the executable itself.
 * `bun run truth:aga-rooms` draws every room with the original code in the harness (`./out/aga-truth/rooms/`); `bun run verify:aga-rooms` compares `./src/game/render/room.ts` with those captures.
 
 `./src/formats/aga.ts` has the AGA decoders, `./src/formats/level.ts` the level format, `./src/formats/delta.ts` and `./src/formats/palette.ts` the formats shared with DOS.

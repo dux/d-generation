@@ -69,7 +69,7 @@ Known limits:
 
 ## GitHub Pages
 
-* `bun run build` (`./tools/build-pages.ts`) writes `./docs`: `./game.html` as `index.html` with its bundle (the floors are bundled), `coi-sw.js`, `.nojekyll`, and only the `./amiga/aga` files the game loads, found by running the worker's loaders.
+* `bun run build` (`./tools/build-pages.ts`) writes `./docs`: `./game.html` as `index.html` with its bundle (the floors are bundled), `coi-sw.js`, `.nojekyll`, and only the `./amiga/aga` and `./data` files the game loads, found by running the worker's loaders (the executable is not among them).
   Commit `./docs` and set Settings > Pages to deploy from the `main` branch, `/docs` folder.
 * All URLs are relative, so the site works under `https://<user>.github.io/<repo>/`.
 * Pages cannot send headers, so `./src/pages/coi-sw.js` adds COOP/COEP to the site's own responses; the page registers it and reloads once.

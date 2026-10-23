@@ -76,7 +76,7 @@ async function run(start: Extract<PageMessage, { type: "start" }>): Promise<void
   const readGameFile = gameFileReader(start.base);
   const [game, assets, ui] = await Promise.all([
     createGame(readGameFile, { demo: start.demo, storage: new PageNonVolatile(start.nonvolatile) }),
-    loadAgaAssets((path) => readGameFile(`amiga/aga/${path}`)),
+    loadAgaAssets(readGameFile),
     loadUiAssets(readGameFile),
   ]);
   // Room pictures are decoded up front: the worker cannot await a load in the middle of a pass.

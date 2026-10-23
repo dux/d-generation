@@ -208,7 +208,7 @@ async function main(): Promise<number> {
   }
 
   const read = async (path: string) => new Uint8Array(await readFile(resolve(ROOT, path)));
-  const assets = await loadAgaAssets(path => read(`amiga/aga/${path}`));
+  const assets = await loadAgaAssets(read);
   const layouts = await loadLayouts();
   const input = new InputTimeline(events);
   const screen = new Screen();

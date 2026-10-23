@@ -39,7 +39,7 @@ await run([...python, "tools/m68k/snapshot.py", String(from), "--compact", truth
 await run([...python, "tools/m68k/capture_display.py", "--frames", String(from), "--ticks", ticks.join(","), "--events", eventsPath, "--out", out]);
 const read = async (path: string) => new Uint8Array(await readFile(resolve(root, path)));
 const layouts = await loadLayouts();
-const assets = await loadAgaAssets(path => read(`amiga/aga/${path}`));
+const assets = await loadAgaAssets(read);
 const input = new InputTimeline(events);
 const natives = new Map<number, Picture>();
 const screen = new Screen();

@@ -20,7 +20,7 @@ const path = process.argv[2];
 if (!path) throw new Error("usage: bun tools/verify-ui-bombed.ts TRUTH.jsonl.gz");
 const read = async (path: string) => new Uint8Array(readFileSync(path));
 const layouts = await loadLayouts();
-const assets = await loadAgaAssets(path => read(`amiga/aga/${path}`));
+const assets = await loadAgaAssets(read);
 let failures = 0;
 for await (const boundary of readTruth(path)) {
   if (boundary.record.frame !== 110) continue;
