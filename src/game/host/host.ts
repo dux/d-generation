@@ -5,6 +5,7 @@ import {
   CONTROL_INTS, FRAME, FRAME_BYTES, HEIGHT, JOY, KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE, RESTORE, SAVE, WIDTH,
   type PageMessage, type WorkerMessage,
 } from "./shared.ts";
+import { XbrRenderer } from "./xbr.ts";
 
 // The AGA screen: one 320x200 8-bitplane PAL lowres bitmap (AllocBitMap planes of 40x200 bytes), shown with
 // square pixels (PAL lowres pixels are within 4% of square). The canvas fills its box at any scale: frames are
@@ -31,6 +32,7 @@ export interface AgaHandle {
   stop(): void;
   save(): void; // F5: save state after the current main-loop pass
   restore(): void; // F9: back to the last saved state
+  setEnhanced(on: boolean): boolean; // xBR view (./xbr.ts) on or off; false when the browser has no WebGL2
 }
 
 function savedItems(): [string, Uint8Array][] {
@@ -83,25 +85,51 @@ export async function startAga(options: AgaHostOptions): Promise<AgaHandle> {
   const image = sourceCtx.createImageData(WIDTH, HEIGHT);
   const ctx = canvas.getContext("2d")!;
   const pixels = new Uint8ClampedArray(frame);
-  const paint = () => ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+  // The Enhanced view draws on its own canvas next to the 2D one (a canvas keeps its first context type).
+  let xbrCanvas: HTMLCanvasElement | null = null;
+  let xbr: XbrRenderer | null = null;
+  let enhanced = false;
+  const present = () => {
+    if (enhanced) return xbr!.draw(image.data);
+    sourceCtx.putImageData(image, 0, 0);
+    ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+  };
   // The largest size that fits the box, and the canvas moved onto the device pixel grid (the page may sit it at a
   // fractional device position, which would blur a whole-multiple scale).
   const fit = () => {
     const ratio = devicePixelRatio;
     const scale = Math.min((box.clientWidth * ratio) / WIDTH, (box.clientHeight * ratio) / HEIGHT);
+    const view = enhanced ? xbrCanvas! : canvas;
+    // xBR draws at the device size itself; the 2D view draws at the next whole multiple and the browser shrinks it.
     const whole = Math.max(1, Math.ceil(scale));
-    if (canvas.width !== WIDTH * whole) {
-      canvas.width = WIDTH * whole; // resets the context state
-      canvas.height = HEIGHT * whole;
+    const width = enhanced ? Math.max(1, Math.round(WIDTH * scale)) : WIDTH * whole;
+    const height = enhanced ? Math.max(1, Math.round(HEIGHT * scale)) : HEIGHT * whole;
+    if (view.width !== width || view.height !== height) {
+      view.width = width; // resets the context state
+      view.height = height;
       ctx.imageSmoothingEnabled = false;
-      paint();
     }
-    canvas.style.width = `${(WIDTH * scale) / ratio}px`;
-    canvas.style.height = `${(HEIGHT * scale) / ratio}px`;
-    canvas.style.margin = "0";
-    const { left, top } = canvas.getBoundingClientRect();
-    canvas.style.marginLeft = `${(Math.ceil(left * ratio) - left * ratio) / ratio}px`;
-    canvas.style.marginTop = `${(Math.ceil(top * ratio) - top * ratio) / ratio}px`;
+    view.style.width = `${(enhanced ? width : WIDTH * scale) / ratio}px`;
+    view.style.height = `${(enhanced ? height : HEIGHT * scale) / ratio}px`;
+    view.style.margin = "0";
+    const { left, top } = view.getBoundingClientRect();
+    view.style.marginLeft = `${(Math.ceil(left * ratio) - left * ratio) / ratio}px`;
+    view.style.marginTop = `${(Math.ceil(top * ratio) - top * ratio) / ratio}px`;
+    present();
+  };
+  const setEnhanced = (on: boolean) => {
+    if (on && !xbr) {
+      xbrCanvas = document.createElement("canvas");
+      xbr = XbrRenderer.create(xbrCanvas);
+      if (!xbr) return false;
+      xbrCanvas.hidden = true;
+      canvas.after(xbrCanvas);
+    }
+    enhanced = on;
+    canvas.hidden = on;
+    if (xbrCanvas) xbrCanvas.hidden = !on;
+    fit();
+    return true;
   };
   const resize = new ResizeObserver(fit);
   resize.observe(box);
@@ -131,6 +159,8 @@ export async function startAga(options: AgaHostOptions): Promise<AgaHandle> {
     input?.dispose();
     audio.stopAll();
     audio.cue(null);
+    xbrCanvas?.remove();
+    canvas.hidden = false;
   };
   const fail = (error: unknown) => {
     if (stopped) return;
@@ -211,11 +241,10 @@ export async function startAga(options: AgaHostOptions): Promise<AgaHandle> {
     if (sequence !== shown) {
       shown = sequence;
       image.data.set(pixels);
-      sourceCtx.putImageData(image, 0, 0);
-      paint();
+      present();
     }
     animation = requestAnimationFrame(draw);
   };
   animation = requestAnimationFrame(draw);
-  return { stop, save, restore: () => void restore() };
+  return { stop, save, restore: () => void restore(), setEnhanced };
 }

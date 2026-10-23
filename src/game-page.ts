@@ -7,16 +7,19 @@ import { gameFileReader } from "./game/host/files.ts";
 import { type AgaHandle, startAga } from "./game/host/host.ts";
 
 const SOUND_SETTING = "d-generation-aga-sound";
+const ENHANCED_SETTING = "d-generation-aga-enhanced";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const saveButton = $<HTMLButtonElement>("save");
 const restoreButton = $<HTMLButtonElement>("restore");
+const enhancedButton = $<HTMLButtonElement>("enhanced");
 const soundButton = $<HTMLButtonElement>("sound");
 const stopped = $<HTMLDivElement>("stopped");
 const status = $<HTMLDivElement>("status");
 
 let sound = localStorage.getItem(SOUND_SETTING) !== "off";
 soundButton.textContent = `Sound: ${sound ? "on" : "off"}`;
+let enhanced = localStorage.getItem(ENHANCED_SETTING) === "on";
 let game: AgaHandle | null = null;
 let audio: HostAudio | null = null;
 
@@ -24,6 +27,12 @@ function showStop(err: unknown) {
   console.error(err);
   stopped.textContent = `Game stopped: ${err instanceof Error ? err.message : String(err)}`;
   stopped.hidden = false;
+}
+
+// Without WebGL2 the button goes away and the plain view stays.
+function applyEnhanced() {
+  if (game && !game.setEnhanced(enhanced)) enhancedButton.hidden = true;
+  enhancedButton.textContent = `Enhanced: ${enhanced ? "on" : "off"}`;
 }
 
 // Buttons give the keyboard back to the game (Space would press them again).
@@ -43,6 +52,13 @@ soundButton.addEventListener("click", () => {
   audio?.setMuted(!sound);
   audio?.unlock();
 });
+enhancedButton.addEventListener("click", () => {
+  enhancedButton.blur();
+  enhanced = !enhanced;
+  localStorage.setItem(ENHANCED_SETTING, enhanced ? "on" : "off");
+  applyEnhanced();
+});
+applyEnhanced();
 
 // Static hosts such as GitHub Pages send no COOP/COEP headers: let ./coi-sw.js add them and reload once through
 // it. The session flag stops a reload loop where service workers are unavailable (e.g. private browsing).
@@ -71,6 +87,7 @@ try {
       showStop(err);
     },
   });
+  applyEnhanced();
 } catch (err) {
   status.textContent = "";
   showStop(err);

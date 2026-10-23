@@ -85,3 +85,5 @@ Known limits:
 * Alt+S / Alt+R are the original checkpoint save and restore (nonvolatile items, kept in localStorage under `d-generation-aga-nv:`).
   F5 and F9, or the Save and Restore buttons in the header, are save states: `Game.snapshot()` returns structured-cloneable data kept in IndexedDB (`d-generation-aga`, store `snapshots`), `Game.restore()` puts it back, also from inside a wait.
 * Ctrl+B opens the original CD32 menu.
+* The game page's Enhanced button (`AgaHandle.setEnhanced`) shows frames on a second, WebGL2 canvas through Hyllian's xBR-lv2 shader (`./src/game/host/xbr.ts`), drawn at the device size; the plain view draws at the next whole multiple of 320x200 and lets the browser shrink it.
+  The choice is kept in localStorage as `d-generation-aga-enhanced`; without WebGL2 the button is hidden.

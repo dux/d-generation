@@ -35,12 +35,14 @@ Full details: `./doc/porting.md` (architecture, rules, verification status, know
 
 ## Added in this port
 
-Two features that are not in the original game, added by Dino Reic ([@dux](https://github.com/dux)).
-Both live in the browser host; the ported game code stays exactly as in the executable.
+Three features that are not in the original game, added by Dino Reic ([@dux](https://github.com/dux)).
+All live in the browser host; the ported game code stays exactly as in the executable.
 
 * **Save / restore anywhere:** F5 / F9, or the Save / Restore buttons in the header, save and restore the full game state at any moment (kept in IndexedDB).
   The original checkpoint saves (Alt+S / Alt+R) still work as before.
 * **Unlimited lives:** after every main-loop pass the host sets the lives counter back to 5, so you never get a game over.
+* **Enhanced view:** the Enhanced button redraws every frame through Hyllian's xBR-lv2 pixel-art scaler on the GPU (WebGL2), so the isometric diagonals and round shapes come out smooth while edges stay sharp.
+  Off by default; the setting is remembered.
 
 ## How each part was ported
 
@@ -92,6 +94,7 @@ The game runs in a module Worker on shared memory, so it needs cross-origin isol
 * Terminal prompts: just type; the host drives the CD32 on-screen keyboard for you (Enter = RET, Backspace = DEL).
 * Alt+S / Alt+R: the original checkpoint save and restore (kept in localStorage).
 * F5 / F9, or the Save / Restore buttons: save states (kept in IndexedDB).
+* Enhanced button: xBR-smoothed graphics on or off.
 * Ctrl+B: the original CD32 menu.
 
 ### Passwords
@@ -158,6 +161,7 @@ Tools and libraries used by the port:
 * [amitools](https://github.com/cnvogelg/amitools) (`xdftool`) to unpack the ADF disk images.
 * [Unicorn](https://www.unicorn-engine.org/) and [Capstone](https://www.capstone-engine.org/) for the 68000 harness and disassembly.
 * [chiptune3](https://github.com/DrSnuggles/chiptune) / libopenmpt to render the original `dgen.mod` and `dgen2.mod` tracks.
+* [xBR-lv2](https://github.com/libretro/glsl-shaders/blob/master/xbr/shaders/xbr-lv2.glsl) by Hyllian (MIT) for the Enhanced view, ported to WebGL2 in `./src/game/host/xbr.ts`.
 * [Vite](https://vite.dev/), [Bun](https://bun.sh/), [TypeScript](https://www.typescriptlang.org/), [json5](https://json5.org/).
 
 ## Rights
