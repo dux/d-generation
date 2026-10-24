@@ -98,7 +98,7 @@ async function run(start: Extract<PageMessage, { type: "start" }>): Promise<void
   const rgba = new Uint8ClampedArray(shared.length);
   const readGameFile = gameFileReader(start.base);
   const [game, assets, ui] = await Promise.all([
-    createGame(readGameFile, { demo: start.demo, storage: new PageNonVolatile(start.nonvolatile) }),
+    createGame(readGameFile, { demo: start.demo, storage: new PageNonVolatile(start.nonvolatile), newGameCards: true }),
     loadAgaAssets(readGameFile),
     loadUiAssets(readGameFile),
   ]);

@@ -276,6 +276,8 @@ export interface GameState {
   textCursor: number;
   // g:d99a: music clock (h0:3104 seconds) when the title module started.
   musicClock: number;
+  // Browser (GameOptions.newGameCards): the story cards are still to play in this game.
+  storyCardsPending: number;
   music: MusicState;
   // g:23f ending id shown when the room timer expires in scene 0x66; g:bfc selects ending 3 over 4 (h0:73de).
   endingId: number;

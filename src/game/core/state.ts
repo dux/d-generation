@@ -40,7 +40,7 @@ export function createState(): GameState {
     messageText: "", messageTime: 0, messageFont: 0, textColor: 0, messageShown: 0, messageTimer: 0,
     messageX: 0, messageY: 0, panelTop: 169, drawnScene: 0, playerPalette: 255, copyrightPending: 1, clipBottom: 181, panelText: "",
     arrivalShown: 0, titleAnimation: 0, padItem: 0, padDisplay: [],
-    screen: createScreenState(), storyShown: 0, savedClip: 0, textCursor: 0, musicClock: 0,
+    screen: createScreenState(), storyShown: 0, savedClip: 0, textCursor: 0, musicClock: 0, storyCardsPending: 0,
     music: { loaded: null, playing: 0, endClock: 0 }, endingId: 0, endingAlt: 0,
     oneLifePending: 0, restoredPending: 0, exitReached: 0, cheatArmed: 0, muted: 0, keyToggle: 0,
     playfieldKey: 0, playfieldKeyPending: 0, talking: 0, input: createInputState(), talk: createTalkState(), delayTimer: 3,

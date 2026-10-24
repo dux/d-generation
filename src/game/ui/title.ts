@@ -162,12 +162,14 @@ function credits(game: Game): number {
   return hold(game, 0x32, 0);
 }
 
+const UK_CARDS = ["uk1", "uk2", "uk3"] as const;
+
 // h0:2d36..2e18: the three UK cards (attract index 1); h0:ad8a between them is the same clear as h0:3182.
 function ukCards(game: Game): number {
   const s = game.state.screen;
   let skip: number;
   clearScreen(s);
-  for (const [i, card] of ["uk1", "uk2", "uk3"].entries()) {
+  for (const [i, card] of UK_CARDS.entries()) {
     game.vblank(showVim(s, card, i === 0 ? 0 : 1));
     if ((skip = hold(game, 0x258, 1)) >= 0) return skip;
     fade(game, "vim");
@@ -175,6 +177,24 @@ function ukCards(game: Game): number {
     if ((skip = hold(game, 0x32, 0)) >= 0) return skip;
   }
   return -1;
+}
+
+// Browser (GameOptions.newGameCards): the UK cards once per game, between the second and third room, with the
+// attract timing; a key or button moves on to the next card. The black gap between cards ignores input, so one
+// press skips one card. The room change that follows redraws the view.
+export function storyCards(game: Game): void {
+  const s = game.state.screen;
+  s.mode = "screen";
+  clearScreen(s);
+  while (game.pendingKey()) game.consumeKey(); // presses made while walking out do not skip the first card
+  for (const [i, card] of UK_CARDS.entries()) {
+    game.vblank(showVim(s, card, i === 0 ? 0 : 1));
+    game.wait(0x258, true);
+    fade(game, "vim");
+    clearScreen(s);
+    game.wait(0x32, false);
+  }
+  s.mode = "room";
 }
 
 // h0:2e1c..2ec6: the next demo record of g:586 becomes the playback room.

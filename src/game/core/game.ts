@@ -23,7 +23,7 @@ import { handleKeys } from "../ui/keys.ts";
 import { padMenu } from "../ui/padmenu.ts";
 import { MemoryNonVolatile, type NonVolatileStore } from "../ui/save.ts";
 import { clearScreen, paletteVblank, restoreView } from "../ui/screen.ts";
-import { startGame, title } from "../ui/title.ts";
+import { startGame, storyCards, title } from "../ui/title.ts";
 import { composeScreenObjects } from "../ui/title-picture.ts";
 import { terminal } from "../ui/terminal/terminal.ts";
 
@@ -37,6 +37,8 @@ export interface GameOptions {
   restore?: boolean;
   // Nonvolatile storage for save/restore game (default: in memory).
   storage?: NonVolatileStore;
+  // Browser: the three UK story cards (h0:2d36, otherwise only in the attract loop) play at every new game.
+  newGameCards?: boolean;
 }
 
 const ENTRY_INDEX = [2, 3, 0, 1]; // g:3cc.
@@ -86,6 +88,7 @@ export class Game {
   readonly events: GameEvent[] = [];
   readonly context: ActorContext;
   readonly storage: NonVolatileStore;
+  readonly newGameCards: boolean;
   demo: DemoInput;
   // Called after every cooperative PAL vblank inside waits and polls; hosts pace, deliver input and draw here.
   onTick: (() => void) | null = null;
@@ -165,6 +168,7 @@ export class Game {
   constructor(floors: Floor[], private readonly sequences: ReadonlyMap<number, DemoRecording>, options: GameOptions = {}) {
     this.world = new World(floors);
     this.storage = options.storage ?? new MemoryNonVolatile();
+    this.newGameCards = options.newGameCards ?? false;
     const scene = options.scene ?? 76;
     this.demo = new DemoInput(this.sequence(scene === 65 ? 52 : 50));
     const room = this.world.enterRoom(scene);
@@ -310,6 +314,7 @@ export class Game {
     this.world.position.scene = 1;
     this.world.saveRoomPosition();
     this.sound(0);
+    if (this.newGameCards) state.storyCardsPending = 1;
   }
 
   // h0:2060 resetGame(): after an ending: fresh player and checkpoint, every story flag cleared, checkpoint restart.
@@ -855,6 +860,12 @@ export class Game {
     }
     if (state.roomChange) {
       if (!state.lives) this.restartCheckpoint();
+      // Browser (newGameCards): the story cards play once per game, on the way into the first room with a survivor
+      // (scene 8 or 3, the third room on either route from the setback).
+      if (state.storyCardsPending && !state.demoPending && !state.demoPlayback && this.survivorRoom(state.sceneIndex + 1)) {
+        state.storyCardsPending = 0;
+        storyCards(this);
+      }
       state.roomChange = 0;
       this.stopAudio();
       restoreView(state.screen);
@@ -889,6 +900,11 @@ export class Game {
     state.frameCounter = u16(state.frameCounter + 1);
     if (state.demoPlayback || state.demoRecording) state.demoClock = u32(state.demoClock + s16(state.frameTicks));
     if (this.quit) this.emit({ type: "quit" });
+  }
+
+  // Whether the level data puts a survivor in this room (read without loading its floor).
+  private survivorRoom(scene: number): boolean {
+    return this.world.floors.some(floor => floor.rooms.some(room => room.scene === scene && room.objects.some(object => object.class === "sur")));
   }
 
   // h0:d92: after a death in a room a generator chased the player through, it re-enters with the player:

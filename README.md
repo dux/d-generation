@@ -44,8 +44,8 @@ Full details: `./doc/porting.md` (architecture, rules, verification status, know
 
 ## Added in this port
 
-Eight additions to the original game, added by Dino Reic ([@dux](https://github.com/dux)).
-All live in the browser host (`./src/game/host/worker.ts`); the ported game code only gained two hooks for it (`Game.onLevelRestart`, called after the original Ctrl+R restart, and `Game.spawnCreature`, the original creature spawn), and plays exactly as the executable without the host.
+Nine additions to the original game, added by Dino Reic ([@dux](https://github.com/dux)).
+All live in the browser host (`./src/game/host/worker.ts`); the ported game code only gained two hooks and an option for it (`Game.onLevelRestart`, called after the original Ctrl+R restart, `Game.spawnCreature`, the original creature spawn, and the `newGameCards` option), and plays exactly as the executable without the host.
 
 * **Save / restore anywhere:** F5 / F9, or the Save / Restore buttons in the header, save and restore the full game state at any moment (kept in IndexedDB).
   The original checkpoint saves (Alt+S / Alt+R) still work as before.
@@ -56,6 +56,9 @@ All live in the browser host (`./src/game/host/worker.ts`); the ported game code
 * **Enhanced view:** the Enhanced button doubles the picture to 640x400 with Hyllian's xBR-lv2-noblend on the GPU (WebGL2) before it is scaled to the window.
   It follows 1:1 and 2:1 edges, so diagonal lines get even steps at the doubled resolution, and every new pixel takes one of its neighbours' colours: no blur, no new colours.
   Off by default; the setting is remembered.
+* **Story cards on the way in:** the three story cards ("You land on the 80th floor setback...", "The door seals itself behind you...", "Uh...excuse me, but I'm going to need a signature for this, ma'am. Ma'am???") play once per game, just before you enter the first room with a survivor (scene 8, or scene 3 if you go round by scene 43).
+  Enter (or any key or button) moves on to the next card, and each card moves on by itself after about 10 seconds.
+  The original shows them only in the attract loop, after the title story and the first demo, which a key on the title skips.
 * **Survivors' gifts up front:** four survivors hand over an item only for one particular answer: the bomb in scene 23, Michelle's bomb in scene 28, the shield in scene 35 and River's shield in scene 75.
   Here each gift is yours as soon as you start talking to them, once.
 * **+Grenade / +Bomb buttons:** one more grenade (up to 99) or bomb (up to 9) per click.
