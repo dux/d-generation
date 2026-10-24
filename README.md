@@ -16,6 +16,15 @@ It is not an emulator.
 The original 68000 executable was disassembled routine by routine and rewritten as typed TypeScript state and functions, and every ported routine was checked against the original executable running in a 68000 emulator.
 Same rooms, same objects, same AI, same random number sequence, same integer quirks, same game state frame by frame for the same input.
 
+## Status: finished and tested
+
+The port is complete: the whole game runs from the intro and title through all ten floors, the finale with the creature and the dish, and every ending.
+It has been played through to the finale in the browser, and every part is checked against the original executable:
+
+* all 139 lockstep scenarios run with no divergence in game state;
+* the frame verifier shows the creature's death in scene 122 (the gore splat, the smashed dish, the palette after the red flash) pixel- and colour-identical to the original for every frame of the kill;
+* rooms, conversations, inventory, terminals, intro cards, HUD, pause, endings and save states pass their own frame verifiers.
+
 ## Why "1:1"
 
 The port is verified in lockstep against the original, not eyeballed.
@@ -35,14 +44,15 @@ Full details: `./doc/porting.md` (architecture, rules, verification status, know
 
 ## Added in this port
 
-Seven additions to the original game, added by Dino Reic ([@dux](https://github.com/dux)).
-All live in the browser host; the ported game code stays exactly as in the executable.
+Eight additions to the original game, added by Dino Reic ([@dux](https://github.com/dux)).
+All live in the browser host (`./src/game/host/worker.ts`); the ported game code only gained two hooks for it (`Game.onLevelRestart`, called after the original Ctrl+R restart, and `Game.spawnCreature`, the original creature spawn), and plays exactly as the executable without the host.
 
 * **Save / restore anywhere:** F5 / F9, or the Save / Restore buttons in the header, save and restore the full game state at any moment (kept in IndexedDB).
   The original checkpoint saves (Alt+S / Alt+R) still work as before.
 * **Unlimited lives:** after every main-loop pass the host sets the lives counter back to 5, so you never get a game over.
-* **Restart level button:** asks first, then sends the original game's Ctrl+R, its own restart from the floor checkpoint (the same restart as losing your last life): back to where you arrived on the current floor, with every room of the floor reloaded.
+* **Restart level button:** asks first, then restarts from the floor checkpoint like the original game's Ctrl+R (the same restart as losing your last life): back to where you arrived on the current floor, with every room of the floor reloaded.
   The key itself is mostly out of reach in a browser, which reloads the page on Ctrl+R.
+  During the finale it also gives the escape countdown back (see "15 minutes to escape").
 * **Enhanced view:** the Enhanced button doubles the picture to 640x400 with Hyllian's xBR-lv2-noblend on the GPU (WebGL2) before it is scaled to the window.
   It follows 1:1 and 2:1 edges, so diagonal lines get even steps at the doubled resolution, and every new pixel takes one of its neighbours' colours: no blur, no new colours.
   Off by default; the setting is remembered.
