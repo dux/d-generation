@@ -21,10 +21,14 @@ const TICK_MS = 20; // PAL vblank
 const MAX_LAG_MS = 250; // further behind (background tab, slow pass) the clock jumps instead of catching up
 const LIVES = 5; // a new game's lives (h0:e4e)
 const SCENES = 150;
-// River in scene 75 gives her shield ("_21" on her topic 9) only at the end of one answer path; the browser hands it
-// over as soon as a conversation with her starts. Her asked-topics word (+d0) records topic 9, so it happens once.
-const RIVER_SCENE = 75;
-const RIVER_GIFT_TOPIC = 9;
+// Survivors who hand over an item ("_kd" in one reply) only at the end of one answer path; the browser gives it as
+// soon as a conversation with them starts. Their asked-topics word (+d0) records the topic, so it happens once.
+const TALK_GIFTS = [
+  { scene: 23, topic: 1, item: "portableLaserCount" }, // a bomb, "I'm a courier. I'm trying to find Derrida."
+  { scene: 28, topic: 9, item: "portableLaserCount" }, // Michelle's bomb, "What's your name?"
+  { scene: 35, topic: 2, item: "shieldCount" },
+  { scene: 75, topic: 9, item: "shieldCount" }, // River
+] as const;
 // +Grenade / +Bomb caps: the stats screen prints grenades with two digits, the inventory a bomb count with one.
 const MAX_GRENADES = 99;
 const MAX_BOMBS = 9;
@@ -136,12 +140,13 @@ async function run(start: Extract<PageMessage, { type: "start" }>): Promise<void
     }
   };
 
-  const giveRiverGift = () => {
+  const giveTalkGifts = () => {
     const state = game.state, talker = state.talk.talker as Talker | null;
-    if (!state.talking || game.room.scene !== RIVER_SCENE || !talker?.surProfile) return;
-    if (talker.surAsked & (1 << RIVER_GIFT_TOPIC)) return;
-    talker.surAsked = (talker.surAsked | (1 << RIVER_GIFT_TOPIC)) >>> 0;
-    state.shieldCount = (state.shieldCount + 1) & 0xff;
+    if (!state.talking || !talker?.surProfile) return;
+    const gift = TALK_GIFTS.find(entry => entry.scene === game.room.scene);
+    if (!gift || talker.surAsked & (1 << gift.topic)) return;
+    talker.surAsked = (talker.surAsked | (1 << gift.topic)) >>> 0;
+    state[gift.item] = (state[gift.item] + 1) & 0xff;
   };
 
   // The +Grenade and +Bomb buttons. Bombs are inventory item 0, kept in `portableLaserCount`.
@@ -205,7 +210,7 @@ async function run(start: Extract<PageMessage, { type: "start" }>): Promise<void
   game.onTick = () => {
     if (Atomics.load(ctrl, RESTORE)) throw new GameInterrupt("restore requested");
     restartLevel();
-    giveRiverGift();
+    giveTalkGifts();
     giveItems();
     const typing = keyboardShown(game);
     const rawKeyEvents: { key: number; down: boolean }[] = [];

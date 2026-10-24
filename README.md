@@ -46,7 +46,8 @@ All live in the browser host; the ported game code stays exactly as in the execu
 * **Enhanced view:** the Enhanced button doubles the picture to 640x400 with Hyllian's xBR-lv2-noblend on the GPU (WebGL2) before it is scaled to the window.
   It follows 1:1 and 2:1 edges, so diagonal lines get even steps at the doubled resolution, and every new pixel takes one of its neighbours' colours: no blur, no new colours.
   Off by default; the setting is remembered.
-* **River's shield up front:** River in scene 75 hands over her shield as soon as you start talking to her, once, instead of only after one particular chain of answers.
+* **Survivors' gifts up front:** four survivors hand over an item only for one particular answer: the bomb in scene 23, Michelle's bomb in scene 28, the shield in scene 35 and River's shield in scene 75.
+  Here each gift is yours as soon as you start talking to them, once.
 * **+Grenade / +Bomb buttons:** one more grenade (up to 99) or bomb (up to 9) per click.
 * **15 minutes to escape:** after the dream (the eyes and cross) and Derrida's room, the original gives you a hidden countdown of about 100 seconds to reach the exit control room, scene 121, before it cuts to the jet-pack; here it is about 15 minutes.
   Restart level while it runs, or any time after it stopped until you fry the creature (the creature out in scene 121, a death's jet-pack cut, the ending text), gives you the whole 15 minutes again from where you arrived on the floor.
@@ -127,10 +128,12 @@ The exit control terminal in scene 121 (building floor 89) needs no typing; it o
 
 ### Hints
 
-River, the survivor in scene 75 (building floor 85), gives you a shield ("some sort of personal barrier").
-She stays seated until her room is secured (blob dead, vent sealed) and she can see you; then Enter starts the conversation and the shield is yours (see "Added in this port").
-In the original she only gives it for `No.`, then `No, you aren't fat.`, then `OK!  OK!  You're fat and ugly!`; that path still adds one more.
-Restart level reloads the floor and with it River.
+The guaranteed bombs come from survivors: the one in scene 23 (building floor 81) and Michelle in scene 28 (building floor 82).
+Shields come from the survivor in scene 35 (building floor 82) and River in scene 75 (building floor 85, "some sort of personal barrier").
+Each of them stays seated until their room is secured and they can see you; then Enter starts the conversation and the gift is yours (see "Added in this port").
+In the original you only get it for one answer (for River `No.`, then `No, you aren't fat.`, then `OK!  OK!  You're fat and ugly!`); that answer still adds one more.
+One more bomb is in the plain cubicle of scene 39: cubicle items are rolled from a fixed seed here, so it is always a bomb.
+Restart level reloads the floor and with it the survivors.
 
 ## Repository layout
 

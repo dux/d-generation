@@ -86,7 +86,7 @@ Known limits:
 * Alt+S / Alt+R are the original checkpoint save and restore (nonvolatile items, kept in localStorage under `d-generation-aga-nv:`).
   F5 and F9, or the Save and Restore buttons in the header, are save states: `Game.snapshot()` returns structured-cloneable data kept in IndexedDB (`d-generation-aga`, store `snapshots`), `Game.restore()` puts it back, also from inside a wait.
 * Ctrl+B opens the original CD32 menu.
-* The worker hands River's shield (scene 75, her topic 9 `_21`) over as soon as a conversation with her starts and marks topic 9 in her asked word (+d0), so it happens once per meeting.
+* The worker hands four one-answer item gifts over as soon as a conversation starts (`TALK_GIFTS`): the bombs (`_01`) of scene 23 topic 1 and scene 28 topic 9, and the shields (`_21`) of scene 35 topic 2 and scene 75 topic 9. It marks the topic in the talker's asked word (+d0), so it happens once per meeting.
 * The +Grenade and +Bomb buttons add to the control words `GIVE_GRENADES` / `GIVE_BOMBS`; the worker adds them to the grenade count and to inventory item 0 (bombs, `portableLaserCount`) on its next tick, capped at what the stats screen and the inventory can print (99 and 9).
 * Leaving Derrida's room starts the hidden escape countdown (h0:3f54 sets `endingTime`, g:d95e, to 0x75800, about 100 s at the browser's pace); when the worker sees it start, it multiplies it by 9, about 15 minutes. The later 0x3200 countdowns stay as they are.
   `handleKeys` calls `Game.onLevelRestart` after the Ctrl+R restart; the worker uses it to put a running escape countdown (`roomEffect` on, above 0x3200) back to its full stretched length. After a restore the worker resyncs its last seen `endingTime`, so a restored escape is not stretched twice.
