@@ -27,6 +27,8 @@ await build({
 });
 renameSync(join(OUT, "game.html"), join(OUT, "index.html"));
 copyFileSync(join(ROOT, "src/pages/coi-sw.js"), join(OUT, "coi-sw.js"));
+// The social preview image (og:image in ./game.html): the first README screenshot.
+copyFileSync(join(ROOT, "doc/screenshots/scene85.png"), join(OUT, "preview.png"));
 // Serve the files as they are, without a Jekyll pass.
 writeFileSync(join(OUT, ".nojekyll"), "");
 
@@ -54,4 +56,4 @@ for (const path of copied) {
   bytes += statSync(join(ROOT, path)).size;
 }
 
-console.log(`docs: index.html, bundle, coi-sw.js, ${copied.length} game files (${(bytes / 1024).toFixed(0)} KB)`);
+console.log(`docs: index.html, bundle, coi-sw.js, preview.png, ${copied.length} game files (${(bytes / 1024).toFixed(0)} KB)`);

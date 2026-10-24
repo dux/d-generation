@@ -70,9 +70,9 @@ Known limits:
 
 ## GitHub Pages
 
-* `bun run build` (`./tools/build-pages.ts`) writes `./docs`: `./game.html` as `index.html` with its bundle (the floors are bundled), `coi-sw.js`, `.nojekyll`, and only the `./assets` files the game loads, found by running the worker's loaders; no original file is shipped. Vite's code goes to `bundle/`.
+* `bun run build` (`./tools/build-pages.ts`) writes `./docs`: `./game.html` as `index.html` with its bundle (the floors are bundled), `coi-sw.js`, `.nojekyll`, `preview.png` (the social preview image, a copy of `./doc/screenshots/scene85.png`), and only the `./assets` files the game loads, found by running the worker's loaders; no original file is shipped. Vite's code goes to `bundle/`.
   Commit `./docs` and set Settings > Pages to deploy from the `master` branch, `/docs` folder.
-* All URLs are relative, so the site works under `https://<user>.github.io/<repo>/`.
+* All URLs are relative, so the site works under `https://<user>.github.io/<repo>/`; only the `og:image` / `twitter:image` meta tags use the absolute `https://dux.github.io/d-generation/preview.png`, as link previews require.
 * Pages cannot send headers, so `./src/pages/coi-sw.js` adds COOP/COEP to the site's own responses; the page registers it and reloads once.
 * `bun run preview` serves `./docs` locally with the headers.
 
