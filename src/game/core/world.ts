@@ -117,7 +117,6 @@ export class World {
 
   // h0:3f54: raw d2300201 uses column-table index d0.w*2+1 (extension 0201).
   gridDestination(scene: number, direction: number): number | null {
-    if (scene === 114) return 133;
     const position = this.gridPosition(scene);
     if (!position) return null;
     direction = u8(direction);

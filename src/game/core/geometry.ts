@@ -271,7 +271,7 @@ export function collide(ctx: ActorContext, actor: Actor, code: number, collidedA
   ctx.state.roomChange = 0;
   if (actor.classId === 0) {
     // h0:3edc runs its object passes before h0:3f54 knows whether the map has a neighbour.
-    const next = ctx.world.gridDestination(ctx.room.scene, edge - 1);
+    const next = ctx.state.sceneIndex === 0x71 ? leaveDream(ctx) : ctx.world.gridDestination(ctx.room.scene, edge - 1);
     if (next !== null) {
       ctx.world.position.entrySlot = [2,3,0,1][edge - 1];
       ctx.world.position.spawnDirection = actor.facing;
@@ -290,6 +290,17 @@ export function collide(ctx: ActorContext, actor: Actor, code: number, collidedA
   }
   ctx.objects.send(actor,{type:8,sender:null,direction:direction & 7});
   return 1;
+}
+
+// h0:3f54 for scene index 0x71 (Derrida's room, scene 114): every edge leads back to the jet-pack roof (scene index
+// 0x84), now with the D/Generation creature out (g:527), the exit reached (g:23d), the room effect on (g:4ef), use
+// enabled again (g:23e) and the ending clock g:d95e started.
+function leaveDream(ctx: ActorContext): number {
+  const state = ctx.state;
+  state.generatorOverride = state.exitReached = state.roomEffect = 1;
+  state.useDisabled = 0;
+  state.endingTime = 0x75800;
+  return 0x84 + 1;
 }
 
 // h0:a286: trigger-only overlaps send message 6 to both sides.

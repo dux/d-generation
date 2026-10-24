@@ -23,7 +23,7 @@ The port is verified in lockstep against the original, not eyeballed.
 * A harness (`./tools/m68k/amigaemu.py`, unicorn + stubbed AmigaOS libraries + emulated blitter) runs the original `dgen` executable from the AGA disks.
 * `bun run lockstep` steps the original and the TypeScript game with the same input and reports the first frame, global variable or object field that differs.
 * The attract demo (3000 main-loop passes, both demos and three attract handoffs) runs with no divergence, both from a native boot and from a state imported from the original.
-* 138 scenarios (`./tools/scenarios/`) cover new game, every object class, room exits, lifts, deaths, pickups, conversations, inventory, every terminal, saves, the bomber and the endings, all with no divergence.
+* 139 scenarios (`./tools/scenarios/`) cover new game, every object class, room exits (including the way out of Derrida's room), lifts, deaths, pickups, conversations, inventory, every terminal, saves, the bomber and the endings, all with no divergence.
 * Room drawing is compared pixel by pixel with the original's drawing: 115 of 121 rooms are identical, the other 6 differ only where the original reads past the end of the 100-row city backdrop.
 * Conversations, inventory, terminals, intro cards, HUD, pause, endings and save states have their own frame verifiers (`./tools/verify-*.ts`).
 * Every ported function starts with a comment naming its address in the original executable, e.g. `// h0:4cbc plyUpdate(): ...`, so any line can be traced back to the 68000 code.
@@ -35,7 +35,7 @@ Full details: `./doc/porting.md` (architecture, rules, verification status, know
 
 ## Added in this port
 
-Six additions to the original game, added by Dino Reic ([@dux](https://github.com/dux)).
+Seven additions to the original game, added by Dino Reic ([@dux](https://github.com/dux)).
 All live in the browser host; the ported game code stays exactly as in the executable.
 
 * **Save / restore anywhere:** F5 / F9, or the Save / Restore buttons in the header, save and restore the full game state at any moment (kept in IndexedDB).
@@ -48,12 +48,13 @@ All live in the browser host; the ported game code stays exactly as in the execu
   Off by default; the setting is remembered.
 * **River's shield up front:** River in scene 75 hands over her shield as soon as you start talking to her, once, instead of only after one particular chain of answers.
 * **+Grenade / +Bomb buttons:** one more grenade (up to 99) or bomb (up to 9) per click.
+* **15 minutes to escape:** after the dream (the eyes and cross) and Derrida's room, the original gives you a hidden countdown of about 100 seconds to reach the exit control room, scene 121, before it cuts to the jet-pack; here it is about 15 minutes.
 
 ## How each part was ported
 
 | Part | Original | Ported as | Where | Checked by |
 |---|---|---|---|---|
-| Game logic (main loop, objects, AI, collisions, timers) | SAS/C 68000 code in `dgen` (hunk h0) | Disassembled routine by routine and rewritten as typed TypeScript state and functions, each tagged with its `h0:` address; one module per object class | `./src/game/core/`, `./src/game/actors/` | `bun run lockstep`, 138 scenarios |
+| Game logic (main loop, objects, AI, collisions, timers) | SAS/C 68000 code in `dgen` (hunk h0) | Disassembled routine by routine and rewritten as typed TypeScript state and functions, each tagged with its `h0:` address; one module per object class | `./src/game/core/`, `./src/game/actors/` | `bun run lockstep`, 139 scenarios |
 | Random numbers | `h0:e7f4`, two byte LCGs in one word | Same generator, including the original's high-byte read quirk and the order of calls | `./src/game/core/random.ts` | lockstep (seed is compared) |
 | Levels | `DATA/L1..L10.SCN`, `MAPMTX0..2.DAT` room packs | Decoded to one editable JSON5 file per floor; rooms build their own runtime grid, level data stays read-only | `./levels/`, `./src/formats/level.ts` | `bun run extract:levels` round trip, byte for byte |
 | Sprites | `aga/*.aga` shape trees of bitplane frames with a mask plane | Atlas PNG per bank (grey = palette index, alpha = mask) plus JSON sets and frame offsets; the blitter draw and horizontal mirror (`h10:16`, `h10:262`) are reimplemented on indexed pixels | `./assets/sprites/`, `./src/formats/shape.ts`, `./src/game/render/gfx.ts` | extractor reads every file back and compares it with the original decode |

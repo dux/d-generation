@@ -28,6 +28,10 @@ const RIVER_GIFT_TOPIC = 9;
 // +Grenade / +Bomb caps: the stats screen prints grenades with two digits, the inventory a bomb count with one.
 const MAX_GRENADES = 99;
 const MAX_BOMBS = 9;
+// Leaving Derrida's room starts the hidden escape countdown (h0:3f54 sets g:d95e to 0x75800, about 100 s here);
+// the browser makes it nine times as long, about 15 minutes. The later 0x3200 countdowns are left alone.
+const ESCAPE_START = 0x75800;
+const ESCAPE_STRETCH = 9;
 
 function post(message: WorkerMessage): void {
   postMessage(message);
@@ -142,6 +146,15 @@ async function run(start: Extract<PageMessage, { type: "start" }>): Promise<void
     if (bombs) state.portableLaserCount = Math.max(state.portableLaserCount, Math.min(MAX_BOMBS, state.portableLaserCount + bombs));
   };
 
+  // A countdown that just started from the escape value (it only ever rises when set) gets stretched once.
+  let lastEndingTime = game.state.endingTime;
+  const stretchEscape = () => {
+    const state = game.state;
+    const started = state.roomEffect && state.endingTime > lastEndingTime && state.endingTime > ESCAPE_START / 2;
+    if (started && state.endingTime <= ESCAPE_START) state.endingTime *= ESCAPE_STRETCH;
+    lastEndingTime = state.endingTime;
+  };
+
   let next = performance.now();
   const typist = new PadTypist();
   game.onTick = () => {
@@ -180,6 +193,7 @@ async function run(start: Extract<PageMessage, { type: "start" }>): Promise<void
         // Unlimited lives in the browser: the lives counter (g:85d4) goes back to 5 after every pass, so the
         // ported game code stays as in the executable.
         if (game.state.lives < LIVES) game.state.lives = LIVES;
+        stretchEscape();
         flush();
         if (game.quitRequested) {
           draw();

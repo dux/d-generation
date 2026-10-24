@@ -82,7 +82,10 @@ function speak(ctx: ActorContext, actor: DerridaActor): void {
   if (!chasePlayer(ctx, actor, 0x3c, 4) || actor.derridaSpoke) return;
   actor.derridaSpoke = 1;
   const profile = actor.surProfile;
-  if (!profile) throw new Error("AGA Derrida speaks without a dialogue profile (h0:8488 reads +be)");
+  // Back in the room after a conversation, the record state has dropped the profile (h0:6de2) and h0:8488 follows
+  // the null +be pointer: the text pointer comes from Amiga low memory (address 0x0c, the address-error vector) and
+  // the message is whatever bytes the ROM has there. That text is not the game's, so nothing is shown.
+  if (!profile) return;
   const start = profile.topics[0]!.textOffset - 1;
   const end = profile.textPool.indexOf("\0", start);
   showMessage(ctx, profile.textPool.slice(start, end === -1 ? undefined : end), 4, 1);

@@ -11,6 +11,10 @@
   "frames": 120,
   "from": 20
  },
+ "audit-derrida-exit": {
+  "frames": 150,
+  "from": 110
+ },
  "audit-cgen-frozen": {
   "frames": 60,
   "from": 22

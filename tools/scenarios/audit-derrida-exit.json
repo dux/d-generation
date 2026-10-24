@@ -1,0 +1,17 @@
+[
+  {
+    "frame": 110,
+    "poke": [
+      { "g": "8a24", "width": 1, "value": 113 },
+      { "g": "6602", "width": 2, "value": 1 },
+      { "g": "4d9", "width": 1, "value": 0 },
+      { "g": "8a22", "width": 1, "value": 32 },
+      { "g": "8a23", "width": 1, "value": 4 },
+      { "g": "85da", "width": 1, "value": 59 },
+      { "g": "85db", "width": 1, "value": 184 },
+      { "g": "85dc", "width": 1, "value": 1 }
+    ]
+  },
+  { "frame": 114, "joy": 268435458 },
+  { "frame": 220, "joy": 268435456 }
+]

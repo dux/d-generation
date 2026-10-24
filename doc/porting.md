@@ -49,7 +49,7 @@ All of these run against fresh captures of the original.
 State of the checks:
 
 * The attract demo (3000 passes, both demos and three attract handoffs) has no divergence, from a native boot and from an import.
-* The 138 scenarios (new game, every object class, room exits, lifts, deaths, pickups, conversations, inventory, all terminals, saves, the bomber and the endings) have no divergence.
+* The 139 scenarios (new game, every object class, room exits including the way out of Derrida's room, lifts, deaths, pickups, conversations, inventory, all terminals, saves, the bomber and the endings) have no divergence.
 * 115 of 121 rooms are pixel-identical; the other 6 differ only where the original reads past the 100-row backdrop.
 * Attract frames match except for documented effects of the original's dirty-rectangle redraw: objects that moved half a pixel are not redrawn, some redrawn objects never reach the screen, and equal-depth objects in a partial redraw sort differently.
   The native renderer draws whole frames and does not reproduce those.
@@ -60,6 +60,7 @@ Known limits:
 * A coverage audit (harness hooks on every class function) left some branches unreached: a few the shipped levels never reach (door messages other than 4 and 9, message type 3), and some reachable ones no scenario sets up yet (a player death without a sender, the DGEN touch outside scene index 0x39, a survivor touched on the jet-pack roof).
   Those are ported from the disassembly only.
 * The remaining `not ported` throws are the menus' demo-recording and demo-playback branches, which play never reaches, and a player death without a sender, where the original reads through a null pointer.
+* Back in scene 114 after a conversation, Derrida's piece 0 has no profile and the original's h0:8488 prints a message from a null pointer (text from Amiga low memory). The port shows no message there.
 
 ## Browser host
 
@@ -87,6 +88,7 @@ Known limits:
 * Ctrl+B opens the original CD32 menu.
 * The worker hands River's shield (scene 75, her topic 9 `_21`) over as soon as a conversation with her starts and marks topic 9 in her asked word (+d0), so it happens once per meeting.
 * The +Grenade and +Bomb buttons add to the control words `GIVE_GRENADES` / `GIVE_BOMBS`; the worker adds them to the grenade count and to inventory item 0 (bombs, `portableLaserCount`) on its next tick, capped at what the stats screen and the inventory can print (99 and 9).
+* Leaving Derrida's room starts the hidden escape countdown (h0:3f54 sets `endingTime`, g:d95e, to 0x75800, about 100 s at the browser's pace); when the worker sees it start, it multiplies it by 9, about 15 minutes. The later 0x3200 countdowns stay as they are.
 * The Restart level button (`AgaHandle.restartLevel`, after a `confirm()`) pushes the raw keys of Ctrl+R into the ring. The game translates them to 0x12, which `handleKeys` (h0:31c0) answers with `restartCheckpoint` (h0:d0c): the player goes back to the floor checkpoint saved on arrival and every room of the floor reloads. Browsers keep the real Ctrl+R for reloading the page.
 * The Enhanced button (game page, and Play on the development page) calls `AgaHandle.setEnhanced`, which shows frames on a second, WebGL2 canvas (`./src/game/host/xbr.ts`): Hyllian's xBR-lv2-noblend magnifies each frame to 640x400, then a nearest-sampling blit copies that to the next whole multiple, like the plain view does with 320x200.
   The choice is kept in localStorage as `d-generation-aga-enhanced`; without WebGL2 the button is hidden.
