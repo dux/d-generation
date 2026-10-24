@@ -3,7 +3,7 @@ import type { HostAudio } from "./audio.ts";
 import { HostInput, readJoystick } from "./input.ts";
 import {
   CONTROL_INTS, FRAME, FRAME_BYTES, GIVE_BOMBS, GIVE_GRENADES, HEIGHT, JOY, KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE,
-  RESTORE, SAVE, WIDTH,
+  RESTART, RESTORE, SAVE, WIDTH,
   type PageMessage, type WorkerMessage,
 } from "./shared.ts";
 import { ENHANCED_HEIGHT, ENHANCED_WIDTH, XbrRenderer } from "./xbr.ts";
@@ -231,10 +231,9 @@ export async function startAga(options: AgaHostOptions): Promise<AgaHandle> {
     Atomics.store(ctrl, KEYS_WRITTEN, written + 1);
   };
   input = new HostInput(sendKey, { F5: save, F9: () => void restore() }, () => audio.unlock());
-  // Ctrl (raw 0x63) + R (raw 0x13) translates to 0x12, which h0:31c0 answers with the checkpoint restart (h0:d0c):
-  // back to where the player arrived on the floor, every room of it reloaded. Browsers keep Ctrl+R for reloading.
+  // The worker turns this into the original Ctrl+R restart (see RESTART). Browsers keep Ctrl+R for reloading.
   const restartLevel = () => {
-    for (const raw of [0x63, 0x13, 0x93, 0xe3]) sendKey(raw);
+    Atomics.store(ctrl, RESTART, 1);
     status("level restarted");
   };
 

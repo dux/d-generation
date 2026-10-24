@@ -74,7 +74,6 @@ export interface GameSnapshot {
   demo: DemoInputState;
   savedRooms: Map<number, ObjectSpec[]>;
   paletteWrites: Map<number, number>;
-  paletteBeforeFlash: Map<number, number> | null;
   booted: boolean;
   quit: number;
   skipStory: boolean;
@@ -90,12 +89,13 @@ export class Game {
   demo: DemoInput;
   // Called after every cooperative PAL vblank inside waits and polls; hosts pace, deliver input and draw here.
   onTick: (() => void) | null = null;
+  // Called when Ctrl+R restarts the floor (h0:d0c via handleKeys); hosts adjust their own additions here.
+  onLevelRestart: (() => void) | null = null;
   // h0:7b2 boundary state: the boot has reached the main loop.
   booted = false;
   // Room saves are native state; restoration may populate them without spawning actors.
   readonly savedRooms = this.objects.savedRooms;
   readonly paletteWrites = new Map<number, number>();
-  paletteBeforeFlash: Map<number, number> | null = null;
   // Display copies so far (h0:20f0 -> h0:aea8 after each draw pass); the renderer keeps the last copied view while a pass is in progress.
   drawPasses = 0;
   private quit = 0;
@@ -108,7 +108,6 @@ export class Game {
 
   private emit(event: GameEvent): void {
     if (event.type === "palette") {
-      if (event.colors.length === 768 && this.state.flashMessage >= 100 && !this.paletteBeforeFlash) this.paletteBeforeFlash = new Map(this.paletteWrites);
       for (let i = 0; i < event.colors.length; i++) {
         const color = event.colors[i] & 63;
         this.paletteWrites.set(event.start * 3 + i, color << 2);
@@ -133,7 +132,7 @@ export class Game {
       version: 1, state, random: random.seed, timers: timers.state, world: this.world.state,
       room: { floor: floor.floor, scene: this.room.scene }, runtimeRoom: this.runtimeRoom,
       objects: this.objects.snapshot(), demo: this.demo.save(), savedRooms: this.savedRooms,
-      paletteWrites: this.paletteWrites, paletteBeforeFlash: this.paletteBeforeFlash,
+      paletteWrites: this.paletteWrites,
       booted: this.booted, quit: this.quit, skipStory: this.skipStory,
     });
   }
@@ -156,7 +155,6 @@ export class Game {
       target.clear();
       for (const [key, value] of source) (target as Map<number, unknown>).set(key, value);
     }
-    this.paletteBeforeFlash = data.paletteBeforeFlash;
     this.booted = data.booted;
     this.quit = data.quit;
     this.skipStory = data.skipStory;
@@ -367,13 +365,7 @@ export class Game {
     const index = state.sceneIndex;
     if (state.generatorOverride && index === 0x78 && state.roomEffect) {
       state.roomEffect = 0;
-      const dgen = this.objects.spawn(objectRecord(0xda, 0x6c, 0x98, 0x80)) as GeneratorActor | null;
-      if (!dgen) throw new Error("h0:10d8 assumes a free slot for the DGEN");
-      dgen.generatorSpawnTime = 0x1400;
-      dgen.speed = 0;
-      dgen.x = (dgen.x & 0xff) | 0x6700;
-      dgen.y = (dgen.y & 0xff) | 0x9d00;
-      updateBounds(dgen);
+      this.spawnCreature();
     }
     // h0:159c(0): record da 94 66 80 in scene 58, da 6c 98 80 elsewhere.
     if (!state.generatorOverride && index === 0x39) this.objects.spawn(objectRecord(0xda, 0x94, 0x66, 0x80));
@@ -430,6 +422,17 @@ export class Game {
     state.movementScale = state.roomResilience[state.sceneIndex];
   }
 
+  // h0:10d8..110a: the creature in scene 121, standing, its spawn timer set.
+  spawnCreature(): void {
+    const dgen = this.objects.spawn(objectRecord(0xda, 0x6c, 0x98, 0x80)) as GeneratorActor | null;
+    if (!dgen) throw new Error("h0:10d8 assumes a free slot for the DGEN");
+    dgen.generatorSpawnTime = 0x1400;
+    dgen.speed = 0;
+    dgen.x = (dgen.x & 0xff) | 0x6700;
+    dgen.y = (dgen.y & 0xff) | 0x9d00;
+    updateBounds(dgen);
+  }
+
   // h0:36aa: sprintf of g:896, shown for six units in style 0.
   showVersion(): void {
     showMessage(this.context, COPYRIGHT, 6, 0);
@@ -445,14 +448,15 @@ export class Game {
   // colour cycle, and the four light rooms load player palette 14/16 at base 32.
   private drawRoomState(): void {
     const state = this.state, index = state.sceneIndex;
+    state.goreShown = state.dgenPalette = 0;
     if (state.drawnScene === 0x66 || index === 0 || index === 0x44) state.paletteStep = 0;
     if ([0x6a, 0x77, 0x7f, 0x75].includes(index)) applySurvivorPalette(this.context, 14, 16, 32);
     if (state.backgroundDirty && index === 0x79) {
-      // h0:14a2 -> h0:1236e: the cannon room after the DGEN died keeps its redraw and status colours.
-      state.forceRedraw = state.paletteDirty = 1;
-      state.statusRed = 0x44;
-      state.statusGreen = 0x54;
-      state.statusBlue = 0x1a;
+      // h0:14a2 -> h0:1236e: the cannon room after the DGEN died gets its gore stamped again.
+      state.forceRedraw = state.gorePending = 1;
+      state.goreEntry = 0x44;
+      state.goreX = 0x54;
+      state.goreY = 0x1a;
     }
     state.drawnScene = index;
   }
@@ -749,10 +753,10 @@ export class Game {
     this.drawPasses++;
   }
 
-  // h0:c16(id): every colour register becomes flash colour g:28a[id].
+  // h0:c16(id): every colour register but 255 becomes flash colour g:28a[id] (h0:155c2 drops the write at 255).
   flashScript(id: number): void {
     const color = FLASH_COLORS[id]!;
-    this.emit({ type: "palette", start: 0, colors: Array.from({ length: 768 }, (_, i) => color[i % 3]!) });
+    this.emit({ type: "palette", start: 0, colors: Array.from({ length: 255 * 3 }, (_, i) => color[i % 3]!) });
   }
 
   // h0:1dd2 tail: shake scripts g:348/g:36e and the red background flash of h0:1d8a.
@@ -868,7 +872,9 @@ export class Game {
       this.objects.prepareDraw();
       this.objects.finishDraw();
       state.forceRedraw = 0; // h0:1d00 ends the draw pass by clearing g:4ea.
-      state.paletteDirty = 0; // h0:2114 -> h0:122fe redraws the status lights once
+      // h0:2114 -> h0:122fe: the pending gore goes into the view and the room bitmap.
+      if (state.gorePending) state.goreShown = 1;
+      state.gorePending = 0;
       updateMessages(this.context, slot => this.pollTimer(slot));
       this.endFlash();
       this.objects.tickDying();
@@ -904,17 +910,16 @@ export class Game {
     state.collisionHandled = 0;
   }
 
+  // h0:c4e: the end of a full flash loads g:dafa, plain DGEN.PAL, through h0:77fe.
   private endFlash(): void {
-    if (!finishFlash(this.context) || !this.paletteBeforeFlash) return;
-    this.paletteWrites.clear();
-    for (const [index, value] of this.paletteBeforeFlash) this.paletteWrites.set(index, value);
-    this.paletteBeforeFlash = null;
+    if (!finishFlash(this.context)) return;
+    this.resetPalette();
+    this.state.dgenPalette = 1;
   }
 
   // h0:77fe: a full 256-colour load (DGEN.PAL g:47e8 / g:dafa, bombed.pal g:db0a) replaces every earlier colour write.
   resetPalette(): void {
     this.paletteWrites.clear();
-    this.paletteBeforeFlash = null;
   }
 
   // h0:8be..b3e: countdowns use wrapped signed arithmetic, with strict underflow.

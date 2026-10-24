@@ -228,10 +228,16 @@ export interface GameState {
   paletteTimer: number;
   paletteStep: number;
   forceRedraw: number;
-  paletteDirty: number;
-  statusRed: number;
-  statusGreen: number;
-  statusBlue: number;
+  // g:3f9b: h0:122fe stamps delta entry g:dd90 of the room set at g:dd91,g:dd92 (the creature's gore) once.
+  gorePending: number;
+  goreEntry: number;
+  goreX: number;
+  goreY: number;
+  // The gore is in the room bitmap g:87fe since that stamp; a room entry redraws the bitmap without it.
+  goreShown: number;
+  // h0:c4e -> h0:77fe(g:dafa): a full flash ends on plain DGEN.PAL, without the room's scheme and light colours,
+  // until the next room entry writes them again.
+  dgenPalette: number;
   backgroundDirty: number;
   roomEffect: number;
   collisionHandled: number;

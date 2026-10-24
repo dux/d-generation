@@ -23,10 +23,10 @@ export interface GeneratorState extends GameState {
   flashMessage: number;
   flashTimer: number;
   forceRedraw: number;
-  paletteDirty: number;
-  statusRed: number;
-  statusGreen: number;
-  statusBlue: number;
+  gorePending: number;
+  goreEntry: number;
+  goreX: number;
+  goreY: number;
   backgroundDirty: number;
   roomEffect: number;
   collisionHandled: number;
@@ -187,8 +187,9 @@ export function flash(ctx: ActorContext, id: number, duration: number): void {
   const color = FLASH_COLORS[id >= 100 ? id - 100 : id];
   if (!color) throw new Error(`AGA flash palette ${id} has no RGB descriptor`);
   if (id >= 100) {
+    // h0:c16 writes 255..0 one at a time; h0:155c2 drops the write at 255 (first + count reaches 0x100).
     const colors: number[] = [];
-    for (let i = 0; i < 256; i++) colors.push(...color);
+    for (let i = 0; i < 255; i++) colors.push(...color);
     ctx.emit({ type: "palette", start: 0, colors });
   } else {
     ctx.emit({ type: "palette", start: 0, colors: color });
@@ -306,10 +307,10 @@ export function cgenPost(ctx: ActorContext, base: Actor): void {
   const animation = ctx.objects.slots.find(value => value?.classId === 25);
   if (animation) animation.removed = state.round;
   state.forceRedraw = 1;
-  state.paletteDirty = 1;
-  state.statusRed = 68;
-  state.statusGreen = 84;
-  state.statusBlue = 26;
+  state.gorePending = 1;
+  state.goreEntry = 0x44;
+  state.goreX = 0x54;
+  state.goreY = 0x1a;
   state.backgroundDirty = 1;
   releaseFigures(ctx);
   state.collisionHandled = 0;

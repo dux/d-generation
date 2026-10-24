@@ -49,6 +49,8 @@ All live in the browser host; the ported game code stays exactly as in the execu
 * **River's shield up front:** River in scene 75 hands over her shield as soon as you start talking to her, once, instead of only after one particular chain of answers.
 * **+Grenade / +Bomb buttons:** one more grenade (up to 99) or bomb (up to 9) per click.
 * **15 minutes to escape:** after the dream (the eyes and cross) and Derrida's room, the original gives you a hidden countdown of about 100 seconds to reach the exit control room, scene 121, before it cuts to the jet-pack; here it is about 15 minutes.
+  Restart level while it runs, or any time after it stopped until you fry the creature (the creature out in scene 121, a death's jet-pack cut, the ending text), gives you the whole 15 minutes again from where you arrived on the floor.
+* **The creature waits in scene 121:** the original shows it only on the entry that stops the countdown; here it is back every time you enter the room until the dish fries it.
 
 ## How each part was ported
 

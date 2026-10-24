@@ -31,6 +31,7 @@ export function handleKeys(game: Game): number {
   if (key === 0x12) {
     state.roomChange = 1;
     game.restartCheckpoint();
+    game.onLevelRestart?.();
   }
   if (key === 0x13) {
     if (state.muted) {

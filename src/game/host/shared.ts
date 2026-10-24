@@ -14,7 +14,8 @@ export const JOY = 5; // ReadJoyPort(1) word of the first gamepad (the page poll
 export const FRAME = 6; // frame buffer sequence number, bumped after each picture
 export const GIVE_GRENADES = 7; // added to by the page's +Grenade button: the worker hands them over and clears it
 export const GIVE_BOMBS = 8; // the same for +Bomb
-export const KEY_RING = 9; // ring of KEY_RING_SIZE Amiga raw key codes (bit 7 = release) and TYPED characters
+export const RESTART = 9; // set by the page's Restart level button: the worker restarts the floor and clears it
+export const KEY_RING = 10; // ring of KEY_RING_SIZE Amiga raw key codes (bit 7 = release) and TYPED characters
 export const TYPED = 0x100; // ring entry TYPED | character code: what the key typed, for the on-screen keyboard
 export const KEY_RING_SIZE = 256;
 export const CONTROL_INTS = KEY_RING + KEY_RING_SIZE;

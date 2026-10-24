@@ -6,7 +6,7 @@ import type { Actor } from "../core/model.ts";
 import type { AgaAssets } from "./assets.ts";
 import { Gfx } from "./gfx.ts";
 import { drawObject, drawObjects } from "./objects.ts";
-import { drawRoom, roomPalette, type Scheme } from "./room.ts";
+import { drawRoom, roomDeltaSet, roomPalette, type Scheme } from "./room.ts";
 import { drawTalkDisplay, talkPalette } from "../ui/talk/render.ts";
 
 // SUR sprite parts use set 109 = set 9 of the SURS bank (sur.ts spriteSets).
@@ -68,6 +68,13 @@ export function renderGame(screen: Screen, game: Game, assets: AgaAssets): void 
   } else {
     screen.clear();
     entry.scheme = drawRoom(screen, game.room, assets, game.room.scene, entry.scheme);
+    if (state.goreShown) {
+      // h0:122fe plotted it over the view and copied it into the room bitmap, so objects draw over it.
+      const set = roomDeltaSet(game.room.scene);
+      const gore = set === undefined ? undefined : assets.deltaSets.get(set)?.entries[state.goreEntry];
+      if (!gore) throw new Error(`scene ${game.room.scene} has no gore delta ${state.goreEntry}`);
+      drawDelta(screen, gore, state.goreX, state.goreY, assets.backdrop);
+    }
     const bombed = state.screen.bombed;
     if (bombed) {
       // h0:1dd2 plotted the explosion into the view g:87fa, under every object drawn since.
@@ -105,12 +112,14 @@ export function redrawObjects(screen: Screen, game: Game, assets: AgaAssets, ord
   screen.bottom = screen.height - 1;
 }
 
-// Colour registers for the last renderGame call: a terminal picture's own palette, else bombed.pal after h0:1dd2
-// or the room scheme over DGEN.PAL, then the game's palette writes.
+// Colour registers for the last renderGame call: a terminal picture's own palette, else bombed.pal after h0:1dd2,
+// plain DGEN.PAL after a full flash, or the room scheme over DGEN.PAL; then the game's palette writes.
 export function renderPalette(game: Game, assets: AgaAssets): Uint8Array {
   const talk = talkPalette(game, assets);
   if (talk) return talk;
   const scheme = caches.get(game)?.scheme ?? 0;
-  const base: Palette = game.state.screen.bombed ? assets.palettes.bombed : roomPalette(assets, game.room.scene, scheme);
+  const state = game.state;
+  const base: Palette = state.screen.bombed ? assets.palettes.bombed
+    : state.dgenPalette ? assets.palettes.dgen : roomPalette(assets, game.room.scene, scheme);
   return game.palette(base);
 }

@@ -2,7 +2,7 @@
 // (Game.onTick) sleeps until its 20 ms slot, takes the page's input and draws, so the original's synchronous
 // waits (intro, pause, endings) run unchanged while the page stays responsive.
 import { Screen } from "../../render/screen.ts";
-import { createGame, GameInterrupt, MemoryNonVolatile, renderGame, renderPalette, type GameSnapshot } from "../index.ts";
+import { createGame, GameInterrupt, MemoryNonVolatile, renderGame, renderPalette, type GameSnapshot, type GameState } from "../index.ts";
 import { loadAgaAssets } from "../render/assets.ts";
 import { roomImage } from "../render/room.ts";
 import { loadUiAssets } from "../ui/assets.ts";
@@ -12,8 +12,8 @@ import type { Talker } from "../ui/talk/talk.ts";
 import { gameFileReader } from "./files.ts";
 import { keyboardShown, PadTypist } from "./typing.ts";
 import {
-  FRAME, GIVE_BOMBS, GIVE_GRENADES, HEIGHT, JOY, KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE, RESTORE, SAVE, SLEEP,
-  TYPED, WIDTH,
+  FRAME, GIVE_BOMBS, GIVE_GRENADES, HEIGHT, JOY, KEYS_READ, KEYS_WRITTEN, KEY_RING, KEY_RING_SIZE, RESTART, RESTORE, SAVE,
+  SLEEP, TYPED, WIDTH,
   type PageMessage, type WorkerMessage,
 } from "./shared.ts";
 
@@ -32,6 +32,12 @@ const MAX_BOMBS = 9;
 // the browser makes it nine times as long, about 15 minutes. The later 0x3200 countdowns are left alone.
 const ESCAPE_START = 0x75800;
 const ESCAPE_STRETCH = 9;
+const ENDING_COUNTDOWN = 0x3200;
+// The escape countdown, not the 0x3200 ones that cut to the jet pack.
+const escapeRunning = (state: GameState) => !!state.roomEffect && state.endingTime > ENDING_COUNTDOWN;
+// Ctrl (raw 0x63) + R (raw 0x13) translates to 0x12, which h0:31c0 answers with the floor restart (h0:d0c).
+const CTRL_R = [{ key: 0x63, down: true }, { key: 0x13, down: true }, { key: 0x13, down: false }, { key: 0x63, down: false }];
+const CREATURE_SCENE_INDEX = 0x78; // scene 121
 
 function post(message: WorkerMessage): void {
   postMessage(message);
@@ -147,18 +153,58 @@ async function run(start: Extract<PageMessage, { type: "start" }>): Promise<void
   };
 
   // A countdown that just started from the escape value (it only ever rises when set) gets stretched once.
+  // The escape is also kept as a snapshot, taken again whenever the floor checkpoint changes during it, until the
+  // creature is fried (backgroundDirty, h0:7f8a) or the game starts over: a restart once the countdown has stopped
+  // (creature out, a death's jet-pack countdown, the jet pack, the ending text) goes back into it.
   let lastEndingTime = game.state.endingTime;
-  const stretchEscape = () => {
+  let escapeSnapshot: GameSnapshot | null = null;
+  let escapeCheckpoint = game.world.state.checkpointPlayer;
+  const trackEscape = () => {
     const state = game.state;
     const started = state.roomEffect && state.endingTime > lastEndingTime && state.endingTime > ESCAPE_START / 2;
     if (started && state.endingTime <= ESCAPE_START) state.endingTime *= ESCAPE_STRETCH;
     lastEndingTime = state.endingTime;
+    if (escapeRunning(state)) {
+      if (!escapeSnapshot || game.world.state.checkpointPlayer !== escapeCheckpoint) {
+        escapeSnapshot = game.snapshot();
+        escapeCheckpoint = game.world.state.checkpointPlayer;
+      }
+    } else if (!state.generatorOverride || state.backgroundDirty) escapeSnapshot = null;
+  };
+  // Restart level during the escape gives its whole time again; the other ending countdowns start at 0x3200.
+  game.onLevelRestart = () => {
+    const state = game.state;
+    if (escapeRunning(state)) state.endingTime = ESCAPE_START * ESCAPE_STRETCH;
+  };
+
+  // The Restart level button: the original Ctrl+R, after going back into the escape if its countdown has stopped.
+  let restartKeys = false, restartEscape = false;
+  const restartLevel = () => {
+    if (!Atomics.exchange(ctrl, RESTART, 0)) return;
+    const state = game.state;
+    if (escapeSnapshot && state.generatorOverride && !state.backgroundDirty && !escapeRunning(state)) {
+      restartEscape = true;
+      throw new GameInterrupt("restart into the escape");
+    }
+    restartKeys = true;
+  };
+
+  // The game puts the creature in scene 121 only on the entry that stops the escape countdown, and it is not kept
+  // with the room; the browser brings it back on every later entry until it is fried. Every room entry takes a new
+  // copy of the player (h0:e6a), also when the room stays the same (a restart into it).
+  let lastEntry = game.world.state.roomEntryPlayer;
+  const returnCreature = () => {
+    const state = game.state, entered = game.world.state.roomEntryPlayer !== lastEntry;
+    lastEntry = game.world.state.roomEntryPlayer;
+    if (!entered || state.sceneIndex !== CREATURE_SCENE_INDEX || !state.generatorOverride || state.backgroundDirty) return;
+    if (!game.objects.slots.some(actor => actor?.classId === 26 && !actor.removed)) game.spawnCreature();
   };
 
   let next = performance.now();
   const typist = new PadTypist();
   game.onTick = () => {
     if (Atomics.load(ctrl, RESTORE)) throw new GameInterrupt("restore requested");
+    restartLevel();
     giveRiverGift();
     giveItems();
     const typing = keyboardShown(game);
@@ -175,6 +221,9 @@ async function run(start: Extract<PageMessage, { type: "start" }>): Promise<void
       if (typing && !(value & 0x80)) continue;
       rawKeyEvents.push({ key: value & 0x7f, down: !(value & 0x80) });
     }
+    // While the on-screen keyboard is up, a restart is dropped like any other key press.
+    if (restartKeys && !typing) rawKeyEvents.push(...CTRL_R);
+    restartKeys = false;
     game.deliver({ rawKeyEvents, joy: typist.joy(game) ?? Atomics.load(ctrl, JOY) >>> 0 });
     flush();
     draw();
@@ -193,7 +242,8 @@ async function run(start: Extract<PageMessage, { type: "start" }>): Promise<void
         // Unlimited lives in the browser: the lives counter (g:85d4) goes back to 5 after every pass, so the
         // ported game code stays as in the executable.
         if (game.state.lives < LIVES) game.state.lives = LIVES;
-        stretchEscape();
+        trackEscape();
+        returnCreature();
         flush();
         if (game.quitRequested) {
           draw();
@@ -205,15 +255,24 @@ async function run(start: Extract<PageMessage, { type: "start" }>): Promise<void
       }
     } catch (error) {
       if (!(error instanceof GameInterrupt)) throw error;
-      game.restore(await nextRestore());
+      const restart = restartEscape;
+      restartEscape = false;
+      if (restart) {
+        restartKeys = true;
+        game.restore(escapeSnapshot!);
+      } else {
+        game.restore(await nextRestore());
+        escapeSnapshot = null;
+      }
+      lastEndingTime = game.state.endingTime;
       post({ type: "sounds", ids: [0] });
       const music = game.state.music;
       post({ type: "music", track: music.playing && music.loaded !== "effects" ? music.loaded : null });
-      Atomics.store(ctrl, RESTORE, 0);
+      if (!restart) Atomics.store(ctrl, RESTORE, 0);
       next = performance.now();
       draw();
       flush();
-      post({ type: "restored" });
+      if (!restart) post({ type: "restored" });
     }
   }
 }
